@@ -1,0 +1,912 @@
+#ifdef txt
+#define LI -
+#define UL *
+#endif
+#ifndef txt
+#define LI :li.
+#define UL :li.
+#endif
+#ifdef txt
+Version 1.0
+#endif
+#ifndef txt
+:h2 res=011.Version 1.0
+:p.
+:ul.
+#endif
+ <$UL>beta3:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> changelog created
+   <$LI> fixed a bug with several network interfaces on one system
+   <$LI> fixed a bug with broken cmd.exe builtin commands
+   <$LI> fixed a bug with wrong dates of new and modified files
+   <$LI> fixed a bunch of other bugs which are too small to remember ;)
+   <$LI> smbcd.exe compiled against old tcp/ip stack interface
+#endif
+#ifdef fr
+   <$LI> CrÇation de l'historique. 
+   <$LI> Correction du probläme avec plusieurs interfaces rÇseau sur un
+     systäme.
+   <$LI> Correction du probläme avec les commandes internes cassÇes de
+     cmd.exe.
+   <$LI> Correction du probläme de mauvaises dates pour les nouveaux
+     fichiers et les fichiers modifiÇs.
+   <$LI> Correction d'un tas d'autres problämes trop insignifiants pour
+     qu'on s'en souvienne ;)
+   <$LI> smbcd.exe compilÇ pour l'ancienne interface de pile TCP/IP.
+#endif
+#ifdef de
+   <$LI> Changelog erstellt
+   <$LI> Ein Fehler wurde behoben mit mehreren Netzwerk-Schnittstellen auf einem System
+   <$LI> Ein Fehler wurde behoben mit gebrochenen cmd.exe eingebaute Kommandos
+   <$LI> Ein Fehler wurde behoben mit falschen Daten der neuen und geÑnderten Dateien
+   <$LI> Es wurde ein BÅndel anderer Bugs, die zu klein sind, sich daran zu erinnern;)
+   <$LI> Gegen alte tcp zusammengestellt smbcd.exe / IP-Stack-Schnittstelle
+#endif
+#ifndef txt
+:eul.
+#endif
+
+ <$UL>beta4:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> fixed errors on write to eCs shares
+   <$LI> more fixes for wrong dates of files
+#endif
+#ifdef fr
+   <$LI> Correction d'erreurs Ö l'Çcriture sur les partages eCS. 
+   <$LI> Nouvelles corrections pour les dates de fichiers erronÇes.
+#endif
+#ifdef de
+   <$LI> Fehler behoben auf zu schreiben, ECS Freigaben
+   <$LI> Mehr Updates fÅr falsches Datum der Dateien
+#endif
+#ifndef txt
+:eul.
+#endif
+
+ <$UL>beta5:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> added file locking
+   <$LI> added 64bit file IO (when working with NDFS 2.3+)
+   <$LI> moved to 3.0.9 samba code
+#endif
+#ifdef fr
+   <$LI> Ajout du verrouillage de fichiers.
+   <$LI> Ajout des E/S fichiers sir 64 bits (pour une utilisation avec
+     NDFS v2.3+).
+   <$LI> Passage Ö la version 3.0.9 du code de Samba. 
+#endif
+#ifdef de
+   <$LI> Hat das Sperren von Dateien
+   <$LI> Hat 64-Bit-IO-Datei (bei der Arbeit mit NDF 2,3 +)
+   <$LI> Umzug nach 3.0.9 Samba
+#endif
+#ifndef txt
+:eul.
+#endif
+
+ <$UL>beta6:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> fixed set attribute bug introduced in beta 5
+   <$LI> implemented setnewfilesize function. It may work not on all CIFS servers.
+   <$LI> added automatic smbcd.exe starting if not started when connecting to CIFS share
+   <$LI> added 'logfile' and 'loglevel' options to ndpsmb
+#endif
+#ifdef fr
+   <$LI> Correction du probläme d'application des attributs introduit
+     dans la beta 5.
+   <$LI> ImplÇmentation de la fonction setnewfilesize. Cela peut cependant
+     ne pas fonctionner avec tous les serveurs CIFS.
+   <$LI> Ajout du dÇmarrage automatique de smbcd.exe s'il n'est pas lancÇ
+     Ö la connexion au partage CIFS.
+   <$LI> Ajout des options 'logfile' et 'loglevel' Ö ndpsmb. 
+#endif
+#ifdef de
+   <$LI> Fixed bug-Attribut eingefÅhrt, beta 5
+   <$LI> Umgesetzt setnewfilesize Funktion. Es kann nicht auf allen CIFS-Servern arbeiten.
+   <$LI> Hat die automatische smbcd.exe ab, wenn nicht gestartet, wenn eine Verbindung zu CIFS-Freigabe
+   <$LI> Added 'logfile' und 'loglevel "Optionen ndpsmb
+#endif
+#ifndef txt
+:eul.
+#endif
+
+ <$UL>beta7:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> moved to libc06b4.dll libc.
+#endif
+#ifdef fr
+   <$LI> Passage Ö la bibliothäque libc libc06b4.dll. 
+#endif
+#ifdef de
+   <$LI> Umzug nach libc06b4.dll libc.
+#endif
+#ifndef txt
+:eul.
+#endif
+
+ <$UL>beta8:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> moved back to libc custom build. 
+   <$LI> added EA support
+   <$LI> a bunch of bugs fixed
+#endif
+#ifdef fr
+   <$LI> Retour Ö une construction "maison" de libc. 
+   <$LI> Ajout de la prise en charge des Aê. 
+   <$LI> Correction d'un tas d'autres problämes. 
+#endif
+#ifdef de
+   <$LI> Zog zurÅck nach libc benutzerdefinierte bauen.
+   <$LI> EA hat die UnterstÅtzung
+   <$LI> Ein paar Bugs behoben
+#endif
+#ifndef txt
+:eul.
+#endif
+
+ <$UL>beta9:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> added EA support for DosOpen which was forgotten in beta8
+#endif
+#ifdef fr
+   <$LI> Ajout de la prise en charge des Aê pour DosOpen, oubliÇe dans la
+     beta8. 
+#endif
+#ifdef de
+   <$LI> EA hat UnterstÅtzung fÅr DosOpen die in beta8 vergessen wurde
+#endif
+#ifndef txt
+:eul.
+#endif
+
+ <$UL>beta10:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> caching of EA size after file find request
+   <$LI> moved to libc06b5.dll libc
+#endif
+#ifdef fr
+   <$LI> Mise en antÇmÇmoire de la taille des Aê apräs une requàte de
+     recherche de fichier.
+   <$LI> Passage Ö la bibliothäque libc libc06b5.dll. 
+#endif
+#ifdef de
+   <$LI> Caching von EA-Grî·e nach Datei zu finden Anfrage
+   <$LI> Umzug nach libc06b5.dll libc
+#endif
+#ifndef txt
+:eul.
+#endif
+
+ <$UL>beta11:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> moved to libc06r1.dll libc
+#endif
+#ifdef fr
+   <$LI> Passage Ö la bibliothäque libc libc06r1.dll. 
+#endif
+#ifdef de
+   <$LI> Umzug nach libc06r1.dll libc
+#endif
+#ifndef txt
+:eul.
+#endif
+
+ <$UL>beta12:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> NdpRsrcQueryFSAllocate rewritten
+   <$LI> moved to libc06.dll from GA2 release
+#endif
+#ifdef fr
+   <$LI> RÇÇcriture de NdpRsrcQueryFSAllocate. 
+   <$LI> Passage Ö la bibliothäque libc libc06.dll version GA2. 
+#endif
+#ifdef de
+   <$LI> NdpRsrcQueryFSAllocate umgeschrieben
+   <$LI> Bewegt von GA2 Release libc06.dll
+#endif
+#ifndef txt
+:eul.
+#endif
+
+ <$UL>beta13, the lucky one:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> moved to libc061.dll from CSD1 release
+#endif
+#ifdef fr
+   <$LI> Passage Ö la bibliothäque libc libc061.dll version CSD1. 
+#endif
+#ifdef de
+   <$LI> Bewegt von CSD1 Release libc061.dll
+#endif
+#ifndef txt
+:eul.
+#endif
+
+ <$UL>beta14:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> moved to libc custom build
+#endif
+#ifdef fr
+   <$LI> Passage Ö une construction "maison" de libc. 
+#endif
+#ifdef de
+   <$LI> Verschoben aufbauen, um benutzerdefinierte libc
+#endif
+#ifndef txt
+:eul.
+#endif
+
+ <$UL>1.0.0:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> changelog was not updated
+#endif
+#ifdef fr
+   <$LI> Historique non renseignÇ.
+#endif
+#ifdef de
+   <$LI> Changelog wurde nicht aktualisiert
+#endif
+#ifndef txt
+:eul.:eul.
+#endif
+
+#ifdef txt
+Version 1.5
+#endif
+#ifndef txt
+:h2 res=012.Version 1.5
+:p.
+:ul.
+#endif
+ <$UL>alpha1:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> smbdc.exe was implemented within ndpsmb.dll
+   <$LI> a lot of other changes
+#endif
+#ifdef fr
+   <$LI> smbdc.exe a ÇtÇ implÇmentÇ au sein de ndpsmb.dll. 
+   <$LI> Beaucoup d'autres modifications. 
+#endif
+#ifdef de
+   <$LI> smbcd.exe wurde innerhalb ndpsmb.dll umgesetzt
+   <$LI> Eine Menge anderer VerÑnderungen
+#endif
+#ifndef txt
+:eul.
+#endif
+
+ <$UL>beta1:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> logging feature rewritten
+   <$LI> fixed free disk space
+   <$LI> added more return codes in the mount part (for evfsgui)
+#endif
+#ifdef fr
+   <$LI> RÇÇcriture de la fonction de consignation. 
+   <$LI> Correction de l'espace disque libre. 
+   <$LI> Ajout de codes de retour supplÇmentaires pour la partie montage
+     (pour evfsgui). 
+#endif
+#ifdef de
+   <$LI> Logging-Funktion neu geschrieben
+   <$LI> Feste freier Festplattenspeicher
+   <$LI> Hat mehr Return-Codes in die Halterung ein Teil (zum evfsgui)
+#endif
+#ifndef txt
+:eul.
+#endif
+   
+ <$UL>beta2:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> update to Samba 3.0.35 client code
+#endif
+#ifdef fr
+   <$LI> Passage Ö la version 3.0.35 du code du client Samba. 
+#endif
+#ifdef de
+   <$LI> Update auf Samba 3.0.35 Client-Code
+#endif
+#ifndef txt
+:eul.
+#endif
+   
+ <$UL>beta3:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> update to Samba 3.0.36 client code
+   <$LI> codepage fix for system running 
+     non IBM-850 codepages (Ticket #100)
+#endif
+#ifdef fr
+   <$LI> Passage Ö la version 3.0.36 du code du client Samba. 
+   <$LI> Correctif sur les pages de codes pour les systämes n'utilisant
+     pas la page de condes IBM-850 (ticket n¯100).
+#endif
+#ifdef de
+   <$LI> Update auf Samba 3.0.36 Client-Code
+   <$LI> Codepage Update fÅr System lÑuft
+     Nicht IBM-850 Codepages (Ticket #100)
+#endif
+#ifndef txt
+:eul.
+#endif
+
+ <$UL>beta4:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> update to Samba 3.0.37 client code
+   <$LI> codepage fix for Ticket #68
+#endif
+#ifdef fr
+   <$LI> Passage Ö la version 3.0.37 du code du client Samba. 
+   <$LI> Correctif sur les pages de codes (ticket n¯68). 
+#endif
+#ifdef de
+   <$LI> Update auf Samba 3.0.37 Client-Code
+   <$LI> Codepage Update fÅr Ticket # 68
+#endif
+#ifndef txt
+:eul.
+#endif
+   
+ <$UL>1.5.0 GA:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> Fix memory leak in EA code
+   <$LI> Ticket #111
+   <$LI> Remove unused MEMLEN, LOGFILE and LOGLEVEL token
+     (Compatibility warning: These tokens must also be removed from older
+     *.ndc *.evp and volumes.cfg files in order to restore connections
+     with the new plugin properly)
+   <$LI> added logging feature for samba messages
+#endif
+#ifdef fr
+   <$LI> Correction d'une fuite de mÇmoire dans le code Aê. 
+   <$LI> Ticket n¯111. 
+   <$LI> Retrait des variables MEMLEN, LOGFILE et LOGLEVEL non utilisÇes. 
+     (Avertissement de compatibilitÇ : ces variables doivent aussi
+     àtre retirÇes des fichiers *.ndc, *.evp et volumes.cfg plus
+     anciens afin de rÇtablir correctement les connexions avec le
+     nouveau composant enfichable).
+   <$LI> Ajout de la fonction de journalisation pour les messages liÇs Ö
+     Samba. 
+#endif
+#ifdef de
+   <$LI> Behebung eines Speicherloches im EA-Code
+   <$LI> Ticket # 111 
+   <$LI> Die nicht mehr benÅtzten Token MEMLEN, LOGFILE und LOGLEVEL wurden 
+     entfernt.
+     (ACHTUNG! KompatibilitÑtswarnung: Die Token mÅssen auch aus alten
+     *.evp, *.ndc und volumes.cfg Dateien entfernt werden, anonsten
+     scheitert die Wiederherstellung von Verbindungsprofilen.
+   <$LI> Logging-Funktion fÅr Samba Meldungen hinzugefÅgt
+#endif
+#ifndef txt
+:eul.
+#endif
+   
+ <$UL>1.5.1:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> Fix crashes on quadcore machines
+#endif
+#ifdef fr
+   <$LI> Correction du plantage sur les machines Quadcore.
+#endif
+#ifdef de
+   <$LI> Behebung der AbstÅrze auf Quadcore Maschinen
+#endif
+#ifndef txt
+:eul.
+#endif
+   
+ <$UL>1.5.2:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> Fix help files
+#endif
+#ifdef fr
+   <$LI> Correction des fichiers d'aide.
+#endif
+#ifdef de
+   <$LI> Korrekturen an den Hilfedateien
+#endif
+#ifndef txt
+:eul.
+#endif
+
+ <$UL>1.5.3:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> Fix timestamp problem
+#endif
+#ifdef fr
+   <$LI> Correction du probläme de tampon dateur des fichiers. 
+#endif
+#ifdef de
+   <$LI> Zeitzonenproblem behoben
+#endif
+#ifndef txt
+:eul.:eul.
+#endif
+
+#ifdef txt
+Version 2.0
+#endif
+#ifndef txt
+:h2 res=013.Version 2.0
+:p.
+:ul.
+#endif
+ <$UL>beta1:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> added dir caching
+#endif
+#ifdef fr
+   <$LI> Ajout de la mise en cache des rÇpertoires. 
+#endif
+#ifdef de
+   <$LI> Caching von Verzeichnissen
+#endif
+#ifndef txt
+:eul.
+#endif
+
+ <$UL>beta2:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> read problem of small files fixed
+   <$LI> delete cache of changed files
+   <$LI> SIGPIPE crash fixed
+#endif
+#ifdef fr
+   <$LI> Correction du probläme de lecture des petits fichiers. 
+   <$LI> Suppression du cache sur les fichiers modifiÇs. 
+   <$LI> Correction du plantage SIGPIPE. 
+#endif
+#ifdef de
+   <$LI> Leseproblem mit kleinen Dateien
+   <$LI> Cache von geÑnderten Dateien sofort lîschen
+   <$LI> SIGPIPE Absturz behoben
+#endif
+#ifndef txt
+:eul.
+#endif
+
+ <$UL>beta3:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> changed instpl.cmd to work correct with nls
+   <$LI> added the possibility to adjust cache timeout and depth via GUI
+   <$LI> adjustments to helpfile and readme
+#endif
+#ifdef fr
+   <$LI> Ajout de la possibilitÇ de rÇgler la temporisation et la
+     profondeur du cache via l'interface utilisateur. 
+   <$LI> Correction du script insp.pl. 
+   <$LI> Correction des fichiers d'aide.
+#endif
+#ifdef de
+   <$LI> instpl.cmd geÑndert, damit Sprachen richtig installiert werden
+   <$LI> Mîglichkeit zum verÑndern des Cache timeout und Tiefe via GUI
+   <$LI> Anassungen an Hilfedateine und readme
+#endif
+#ifndef txt
+:eul.
+#endif
+
+ <$UL>beta4:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> possible SIGPIPE crashes redone (thanks to Vitali)
+   <$LI> touch did not delete the cache
+#endif
+#ifdef fr
+   <$LI> Revue des possibles plantages SIGPIPE (merci Ö Vitali).
+   <$LI> "touch" ne supprimait pas le cache. 
+#endif
+#ifdef de
+   <$LI> mîgliche SIGPIPE AbstÅrze komplett neu gelîst (Dank geht an Vitali)
+   <$LI> Touch lîschte den Cache nicht
+#endif
+#ifndef txt
+:eul.
+#endif
+
+ <$UL>2.0.0 GA:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> changed wpi package
+#endif
+#ifdef fr
+   <$LI> Modification du l'archive de distribution WPI.
+#endif
+#ifdef de
+   <$LI> énderung am WarpIn Packet
+#endif
+#ifndef txt
+:eul.
+#endif
+
+ <$UL>2.0.1:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> connection loss properly handled (thanks to Vitali)
+   <$LI> changes to helpfile and readme
+#endif
+#ifdef fr
+   <$LI> Meilleure prise en charge des connexions perdues (merci Ö Vitali).
+   <$LI> Modification des fichiers d'aide.
+#endif
+#ifdef de
+   <$LI> Verlust der Verbindung richtig behandelt (Dank geht an Vitali)
+   <$LI> Anpassungen an Hilfedatei und readme
+#endif
+#ifndef txt
+:eul.:eul.
+#endif
+
+#ifdef txt
+Version 2.1
+#endif
+#ifndef txt
+:h2 res=014.Version 2.1
+:p.
+:ul.
+#endif
+ <$UL>alpha1:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> moved to samba 3.3 source base
+   <$LI> new merge of 2.0 code and 1.6 code
+   <$LI> enhanced the debug part
+#endif
+#ifdef fr
+   <$LI> Passage Ö la version 3.3 du code du client Samba. 
+   <$LI> Nouvelle fusion des codes 2.0 et 1.6. 
+   <$LI> AmÇlioration de la partie debogage. 
+#endif
+#ifdef de
+   <$LI> Update auf Samba 3.3 Client-Code
+   <$LI> neuer Merge von 1.6 code und 2.0 code
+   <$LI> den Debugteil erweitert
+#endif
+#ifndef txt
+:eul.
+#endif
+
+ <$UL>beta1:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> fixed a trap as samba 3.3 is not threadsafe (thanks to Vitali)
+#endif
+#ifdef fr
+   <$LI> Correction d'un TRAP dñ au fait que Samba 3.3 ne soit pas
+     thread-safe (Merci Ö Vitali).
+#endif
+#ifdef de
+   <$LI> einen Trap bereinigt, weil Samba 3.3 nicht threadsicher ist (Dank geht an Vitali)
+#endif
+#ifndef txt
+:eul.
+#endif
+
+ <$UL>2.1.0 GA:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> update to Samba 3.3.15 client code
+#endif
+#ifdef fr
+   <$LI> Passage Ö la version 3.3.15 du code du client Samba.
+#endif
+#ifdef de
+   <$LI> Update auf Samba 3.3.15 Client-Code
+#endif
+#ifndef txt
+:eul.
+#endif
+
+ <$UL>2.1.1 GA:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> update to Samba 3.3.16 client code
+   <$LI> use libc064.dll instead of libc064x.dll
+   <$LI> smb.conf could not be read
+#endif
+#ifdef fr
+   <$LI> Passage au code du client Samba v3.3.16.
+   <$LI> utiliser libc064.dll lieu de libc064x.dll
+   <$LI> smb.conf ne pouvait pas àtre lu.
+#endif
+#ifdef de
+   <$LI> Update auf Samba 3.3.16 Client-Code
+   <$LI> Benutze libc064.dll statt libc064x.dll
+   <$LI> smb.conf konnte nicht gelesen werden
+#endif
+#ifndef txt
+:eul.
+#endif
+
+ <$UL>2.1.2 GA:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> Ticket #181
+   <$LI> Ticket #192
+   <$LI> wis script changes
+#endif
+#ifdef fr
+   <$LI> Ticket n¯ 181
+   <$LI> Ticket n¯ 192
+   <$LI> Modification de script wis
+#endif
+#ifdef de
+   <$LI> Ticket #181
+   <$LI> Ticket #192
+   <$LI> wis Skript énderungen
+#endif
+#ifndef txt
+:eul.
+#endif
+
+ <$UL>2.1.3 GA:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> Ticket #204
+   <$LI> wis script changes
+#endif
+#ifdef fr
+   <$LI> Ticket n¯ 204
+   <$LI> Modification de script wis
+#endif
+#ifdef de
+   <$LI> Ticket #204
+   <$LI> wis Skript énderungen
+#endif
+#ifndef txt
+:eul.
+#endif
+
+ <$UL>2.1.4 GA:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> Ticket #219
+   <$LI> use libc065.dll instead of libc064.dll
+#endif
+#ifdef fr
+   <$LI> Ticket n¯ 219
+   <$LI> utiliser libc065.dll lieu de libc064.dll
+#endif
+#ifdef de
+   <$LI> Ticket #219
+   <$LI> Benutze libc065.dll statt libc064.dll
+#endif
+#ifndef txt
+:eul.
+#endif
+
+ <$UL>2.1.5 GA:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> Ticket #227
+#endif
+#ifdef fr
+   <$LI> Ticket n¯ 227
+#endif
+#ifdef de
+   <$LI> Ticket #227
+#endif
+
+#ifndef txt
+:eul.:eul.
+#endif
+
+#ifdef txt
+Version 2.2
+#endif
+#ifndef txt
+:h2 res=015.Version 2.2
+:p.
+:ul.
+#endif
+ <$UL>beta1:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> moved to samba 3.5 source base
+#endif
+#ifdef fr
+   <$LI> Passage Ö la version 3.5 du code du client Samba.
+#endif
+#ifdef de
+   <$LI> Update auf Samba 3.5 Client-Code
+#endif
+#ifndef txt
+:eul.
+#endif
+
+ <$UL>beta2:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> fixed transfer problems
+   <$LI> smb.conf could not be read
+#endif
+#ifdef fr
+   <$LI> Correction des problämes de transfert. 
+   <$LI> smb.conf ne pouvait pas àtre lu.
+#endif
+#ifdef de
+   <$LI> Transferprobleme gelîst
+   <$LI> smb.conf konnte nicht gelesen werden
+#endif
+#ifndef txt
+:eul.
+#endif
+
+ <$UL>beta3:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> Ticket #181
+   <$LI> Ticket #192
+   <$LI> wis script changes
+#endif
+#ifdef fr
+   <$LI> Ticket n¯ 181
+   <$LI> Ticket n¯ 192
+   <$LI> Modification de script wis
+#endif
+#ifdef de
+   <$LI> Ticket #181
+   <$LI> Ticket #192
+   <$LI> wis Skript énderungen
+#endif
+#ifndef txt
+:eul.
+#endif
+
+ <$UL>GA:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> Ticket #204
+   <$LI> wis script changes
+   <$LI> Ticket #227
+#endif
+#ifdef fr
+   <$LI> Ticket n¯ 204
+   <$LI> Modification de script wis
+   <$LI> Ticket n¯ 227
+#endif
+#ifdef de
+   <$LI> Ticket #204
+   <$LI> wis Skript énderungen
+   <$LI> Ticket #227
+#endif
+
+#ifndef txt
+:eul.:eul.
+#endif
+
+#ifdef txt
+Version 2.3
+#endif
+#ifndef txt
+:h2 res=016.Version 2.3
+:p.
+:ul.
+#endif
+ <$UL>beta1:
+#ifndef txt
+:ul compact.
+#endif
+#ifdef en
+   <$LI> moved to samba 3.6 source base
+#endif
+#ifdef fr
+   <$LI> Passage Ö la version 3.6 du code du client Samba.
+#endif
+#ifdef de
+   <$LI> Update auf Samba 3.6 Client-Code
+#endif
+#ifndef txt
+:eul.
+#endif
+
+#ifndef txt
+:eul.:eul.
+#endif

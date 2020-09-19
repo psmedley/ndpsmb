@@ -1,0 +1,26 @@
+#
+# Netdrive Samba client plugin
+# kBuild configuration variables
+# Copyright (C) netlabs.org 2003-2012
+# Copyright (C) bww bitwise works GmbH 2013-2015
+# See COPYING for license informations
+#
+#
+# edit this file to change version numbering
+# in bldlevel informations
+# adjust also the date please
+#
+VERSION	= 3.0.x
+BUILD	= beta-date
+VENDOR  = netlabs
+SAMBA	= ../../samba-44
+TOOLKIT = u:/os2tk45
+
+# libz is needed by samba client, if it's found in the path leave the below definition blank. otherwise set it
+Z_LIBDIR =
+
+# set this to where the gcc_libs are. right now used to find binmode.obj
+GCC_LIB=e:/usr/lib
+
+# libsmb is threadunsafe, change =0 to =1 if it works again
+LIBSMB_THREAD_UNSAFE = LIBSMB_THREAD_SAFE=0

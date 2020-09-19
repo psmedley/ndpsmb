@@ -1,0 +1,5 @@
+title = "SMB FS"
+name = ndpsmb
+file = ndpsmb.dll
+file = ndpsmb.hlp
+file = ndpsmb.ndp

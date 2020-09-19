@@ -1,0 +1,146 @@
+#include <ndpl_rc.h>
+
+#include "rc.h"
+
+RCINCLUDE "rc.dlg"
+
+RCINCLUDE "description.rc"
+
+RCDATA NDRC_PLUGIN_NAME
+{
+    "SMBFS"
+}
+
+RCDATA NDRC_PLUGIN_DESC
+{
+"Access to SAMBA resources.\n
+Plugin Version 3.7.2 Build 20200918\n
+Maintained by netlabs\n
+See help for more Information.\n   
+"
+}
+
+RCDATA NDRC_PLUGIN_HELP
+{
+    "ndpsmb.hlp"
+}
+
+/* if dlg is the same for two types then one dlg id may be specified
+   for both descriptions (this is untested however :) */
+RCDATA NDRC_TYPE_FIRST
+{
+    DLG_ID, "SMBFS."
+}
+
+
+RCDATA NDRC_TYPE_HELP_FIRST
+{
+   "Help for command line utility:\r\n"
+   "\r\n"
+   "nd mount smbfs s:\\mountpoint ;workgroup=...;server=...;share=...;user=...;password=...;master=...;mastertype=...;easupport=...\r\n"
+   "\r\n"
+   "    workgroup - name of workgroup\r\n"
+   "    server - name or ip address of server\r\n"
+   "    share - name of share\r\n"
+   "    user - name of user\r\n"
+   "    password - user password\r\n"
+   "    master - name of master server or master workgroup\r\n"
+   "    mastertype - 0 if 'master' is the name of master server, 1 if 'master' is the name of master workgroup\r\n"
+   "    encryption - 0 to not support encryption (default), 1 to support\r\n"
+   "    NTLMv1 auth support - 0 to not support NTLMv1 authentication (default), 1 to support\r\n"
+   "    krb5support - 0 to not support kerberos authentication, 1 to support\r\n"
+   "    easupport - 0 to not support EA, 1 to support\r\n"
+   "\r\n"
+}
+
+HELPTABLE DLG_ID
+{
+    HELPITEM DLG_ID, DLG_ID, DLG_ID
+}
+
+HELPSUBTABLE DLG_ID
+SUBITEMSIZE 2
+{
+}
+
+/* 
+ * ID, TYPE, REQUIRED, RANGE_LOW, RANGE_HIGH, "NAME", "FORMATSTRING", "DEFAULT" or DEFAULT
+ */
+
+RCDATA DLG_ID
+{
+    ENT_WORKGRP, PARMTYPE_STRING, 1L, 256L, "workgroup", "%s", ""
+}
+
+RCDATA (DLG_ID + 1)
+{
+    ENT_SERVER, PARMTYPE_STRING, 1L, 256L, "server", "%s", ""
+}
+
+RCDATA (DLG_ID + 2)
+{
+    ENT_SHARE, PARMTYPE_STRING, 1L, 256L, "share", "%s", ""
+}
+
+RCDATA (DLG_ID + 3)
+{
+    ENT_USER, PARMTYPE_STRING, 1L, 256L, "user", "%s", "guest"
+}
+
+RCDATA (DLG_ID + 4)
+{
+    ENT_PASS, PARMTYPE_STRING, 1L, 256L, "password", "%s", ""
+}
+
+RCDATA (DLG_ID + 5)
+{
+    ENT_MASTER, PARMTYPE_STRING, 1L, 256L, "master", "%s", "WORKGROUP"
+}
+
+RCDATA (DLG_ID + 6)
+{
+    CMB_MASTER, PARMTYPE_INT, 0L, 1L, "mastertype", "%d", 1L, 
+    "server", 
+    "workgroup"
+}
+
+RCDATA (DLG_ID + 7)
+{
+    CHK_EASUPPORT, PARMTYPE_INT, 0L, 1L, "easupport", "%d", 1L
+}
+    
+RCDATA (DLG_ID + 8)
+{
+    ENT_SPASS, PARMTYPE_STRING, 1L, 255L, "spassword", "%s", ""
+}
+
+RCDATA (DLG_ID + 9)
+{
+    SPIN_CACHETIMEOUT, PARMTYPE_INT, 10L, 600L, "cto", "%d", 10L
+}
+
+RCDATA (DLG_ID + 10)
+{
+    SPIN_CACHEDEPTH, PARMTYPE_INT, 32L, 80L, "cld", "%d", 32L,
+}
+
+RCDATA (DLG_ID + 11)
+{
+    CHK_KRB5SUPPORT, PARMTYPE_INT, 0L, 1L, "krb5support", "%d", 0L
+}
+
+RCDATA (DLG_ID + 12)
+{
+    CHK_NTLMv1SUPPORT, PARMTYPE_INT, 0L, 1L, "ntlmv1support", "%d", 0L
+}
+
+RCDATA (DLG_ID + 13)
+{
+    CHK_ENCRYPTIONSUPPORT, PARMTYPE_INT, 0L, 1L, "encryptionsupport", "%d", 0L
+}
+
+RCDATA (DLG_ID + 14)
+{
+    1
+}
+

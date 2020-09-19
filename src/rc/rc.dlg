@@ -1,0 +1,74 @@
+#ifndef OS2_INCLUDED
+   #include <os2.h>
+#endif
+DLGINCLUDE 1 "rc.h"
+
+DLGTEMPLATE DLG_ID LOADONCALL MOVEABLE DISCARDABLE
+BEGIN
+    DIALOG  "", DLG_ID, 24, 44, 253, 187, WS_VISIBLE, FCF_SYSMENU | 
+            FCF_TITLEBAR
+    BEGIN
+        CTEXT           "SMB resource properties:", LBL_PROP, 197, 151, 12, 
+                        10, DT_VCENTER | NOT WS_VISIBLE
+        LTEXT           "Workgroup:", LBL_WORKGRP, 13, 161, 52, 10, 
+                        DT_BOTTOM
+        ENTRYFIELD      "", ENT_WORKGRP, 71, 163, 100, 8, ES_MARGIN
+        LTEXT           "Server:", LBL_SERVER, 13, 146, 52, 10, DT_BOTTOM
+        ENTRYFIELD      "", ENT_SERVER, 71, 148, 100, 8, ES_MARGIN
+        LTEXT           "Share:", LBL_SHARE, 13, 132, 52, 10, DT_BOTTOM
+        ENTRYFIELD      "", ENT_SHARE, 71, 133, 100, 8, ES_MARGIN
+        LTEXT           "User ID:", LBL_USER, 13, 100, 53, 10, DT_BOTTOM
+        ENTRYFIELD      "", ENT_USER, 71, 102, 100, 8, ES_MARGIN
+        LTEXT           "Password:", LBL_PASS, 13, 87, 53, 10, DT_BOTTOM
+        ENTRYFIELD      "", ENT_PASS, 71, 88, 100, 8, ES_MARGIN | 
+                        ES_UNREADABLE
+        ENTRYFIELD      "", ENT_SPASS, 180, 88, 56, 8, ES_MARGIN | 
+                        ES_UNREADABLE | NOT WS_TABSTOP | NOT WS_VISIBLE
+        LTEXT           "Master:", LBL_MASTER, 12, 60, 52, 10, DT_BOTTOM
+        CONTROL         "", CMB_MASTER, 69, 37, 71, 33, WC_COMBOBOX, 
+                        CBS_DROPDOWNLIST | WS_GROUP | WS_TABSTOP | 
+                        WS_VISIBLE
+        ENTRYFIELD      "", ENT_MASTER, 147, 60, 90, 8, ES_MARGIN
+        LTEXT           "Supports EA", LBL_EASUPPORT, 190, 130, 52, 10, 
+                        DT_WORDBREAK
+        AUTOCHECKBOX    "", CHK_EASUPPORT, 180, 132, 10, 10, WS_GROUP
+        LTEXT           "Supports KRB5", LBL_KRB5SUPPORT, 190, 140, 52, 10, 
+                        DT_WORDBREAK
+        AUTOCHECKBOX    "", CHK_KRB5SUPPORT, 180, 142, 10, 10, WS_GROUP
+        LTEXT           "Support NTLMv1", LBL_NTLMv1SUPPORT, 190, 150, 52, 10, 
+                        DT_WORDBREAK
+        AUTOCHECKBOX    "", CHK_NTLMv1SUPPORT, 180, 152, 10, 10, WS_GROUP
+        LTEXT           "Support Encryption", LBL_ENCRYPTIONSUPPORT, 190, 160, 58, 10, 
+                        DT_WORDBREAK
+        AUTOCHECKBOX    "", CHK_ENCRYPTIONSUPPORT, 180, 162, 10, 10, WS_GROUP
+        PUSHBUTTON      "Cancel", DID_CANCEL, 7, 6, 56, 14
+                        PRESPARAMS PP_FONTNAMESIZE, "9.WarpSans Bold"
+        PUSHBUTTON      "<<Previous", BTN_PREV, 68, 6, 56, 14
+                        PRESPARAMS PP_FONTNAMESIZE, "9.WarpSans Bold"
+        DEFPUSHBUTTON   "Done", DID_OK, 129, 6, 56, 14
+                        PRESPARAMS PP_FONTNAMESIZE, "9.WarpSans Bold"
+        PUSHBUTTON      "Help", BTN_HELP, 190, 6, 56, 14, BS_HELP
+                        PRESPARAMS PP_FONTNAMESIZE, "9.WarpSans Bold"
+        GROUPBOX        "CIFS/SMB resource properties", GB_PROPERTIES, 5, 125, 
+                        244, 58
+                        PRESPARAMS PP_FOREGROUNDCOLOR, 0x00000000L
+                        PRESPARAMS PP_FONTNAMESIZE, "9.WarpSans Bold"
+        GROUPBOX        "Login as", GB_LOGIN, 5, 82, 244, 40
+                        PRESPARAMS PP_FOREGROUNDCOLOR, 0x00000000L
+                        PRESPARAMS PP_FONTNAMESIZE, "9.WarpSans Bold"
+        GROUPBOX        "Cache", GB_CACHE, 5, 24, 244, 26
+                        PRESPARAMS PP_FOREGROUNDCOLOR, 0x00000000L
+                        PRESPARAMS PP_FONTNAMESIZE, "9.WarpSans Bold"
+        GROUPBOX        "Browse", GB_BROWSE, 5, 53, 244, 26
+                        PRESPARAMS PP_FOREGROUNDCOLOR, 0x00000000L
+                        PRESPARAMS PP_FONTNAMESIZE, "9.WarpSans Bold"
+        LTEXT           "Cache timeout:", LBL_CACHETIMEOUT, 12, 30, 55, 8, DT_BOTTOM
+        CONTROL         "", SPIN_CACHETIMEOUT, 69, 30, 32, 12, WC_SPINBUTTON
+			SPBS_NUMERICONLY | SPBS_JUSTRIGHT | SPBS_MASTER | WS_GROUP | WS_TABSTOP |
+			WS_VISIBLE
+        LTEXT           "Cache listings:", LBL_CACHEDEPTH, 134, 30, 55, 8, DT_BOTTOM
+        CONTROL         "", SPIN_CACHEDEPTH, 194, 30, 39, 12, WC_SPINBUTTON
+			SPBS_NUMERICONLY | SPBS_JUSTRIGHT | SPBS_MASTER | WS_GROUP | WS_TABSTOP |
+			WS_VISIBLE
+    END
+END

@@ -1,0 +1,190 @@
+#
+# Netdrive Samba client plugin
+# kBuild makefile
+# Copyright (C) netlabs.org 2003-2008
+# See COPYING for license informations
+#
+# please define (as env variables or kmk command line) the following variables before starting:
+# BUILD_PLATFORM = os2
+# BUILD_TYPE = release|debug
+#
+# Copy Config.km_ to Config.kmk and edit it to match your installation.
+#
+
+DEPTH = ..
+
+ndpsmb_TOOL = GCC3OMF
+
+DLLS = ndpsmb
+
+# required to get IPFC compiler to work correctly
+export IPFC=$(TOOLKIT)\IPFC
+
+TOOL_GCC3OMF_RCFLAGS += -i=$(TOOLKIT)/h
+
+ndpsmb_SOURCES = \
+	rc/rc.rc \
+	ndpsmb.def \
+	ndpsmb.c \
+	debug.c \
+	util.c \
+	dircache.c \
+	smbwrp.c
+
+ndpsmb_CFLAGS = -Zomf
+# YD -O2/O3 triggers stack variable alignment bug in gcc 4.3.2/4.4.0!
+ndpsmb_CFLAGS.release = -g -O1 -march=pentium -mtune=pentium4 -D__STDC_WANT_LIB_EXT1__=1
+
+ndpsmb_CFLAGS.debug = -g -O0 -D__STDC_WANT_LIB_EXT1__=1
+ndpsmb_LDFLAGS = -Zomf -Zno-fork -Zmap -Zdll -Zhigh-mem
+ndpsmb_LDFLAGS.release = -s
+ndpsmb_LDFLAGS.debug = -g
+
+ndpsmb_DEFS = $(LIBSMB_THREAD_UNSAFE)
+ndpsmb_INCS = ./h ./rc \
+		$(SAMBA)	\
+		$(SAMBA)/bin/default/include/public	\
+		$(SAMBA)/bin/default/include	\
+		$(SAMBA)/bin/default	\
+		$(SAMBA)/source3 \
+		$(SAMBA)/source3/include \
+		$(SAMBA)/lib/replace \
+		$(SAMBA)/popt \
+		$(SAMBA)/lib/talloc \
+		$(SAMBA)/libcli \
+		$(SAMBA)/librpc \
+		$(SAMBA)/lib/tdb/include \
+		$(SAMBA)/lib/tevent
+
+ndpsmb_LIBS = $(SAMBA)/smbcl411.lib
+ndpsmb_LIBPATH = $(SAMBA)/source3/bin $(Z_LIBDIR)
+
+ndpsmb_CLEAN = rc/description.rc $(PATH_STAGE_LIB)/ndpsmb.dll
+
+#build other files (e.g. help)
+OTHER_CLEAN += $(PATH_INST_BIN)/en/ndpsmb.hlp $(PATH_OBJ)/en/ndpsmb.ipf $(PATH_INST_BIN)/readme.txt \
+	      $(PATH_INST_BIN)/fr/ndpsmb.hlp $(PATH_OBJ)/fr/ndpsmb.ipf $(PATH_INST_BIN)/readme_fr.txt \
+              $(PATH_INST_BIN)/de/ndpsmb.hlp $(PATH_OBJ)/de/ndpsmb.ipf $(PATH_INST_BIN)/readme_de.txt
+
+# install some more files
+INSTALLS = ndpsmb-docs
+ndpsmb-docs_INST = $(INST_BIN)
+ndpsmb-docs_SOURCES = COPYING resources/ndpsmb.ndp resources/instpl.cmd resources/uninstpl.cmd
+
+OTHER_CLEAN += $(INST_BIN)/COPYING $(INST_BIN)/ndpsmb.ndp $(INST_BIN)/instpl.cmd $(INST_BIN)/uninstpl.cmd $(INST_BIN)/ndpsmb.dll $(PATH_OBJ)/ndpsmb.wis
+
+# packaging stuffs
+ifeq ($(BUILD_TYPE),debug)
+  PACKAGE_NAME = ndpsmb-$(subst .,_,$(VERSION))-$(BUILD)-debug
+else
+  PACKAGE_NAME = ndpsmb-$(subst .,_,$(VERSION))-$(BUILD)
+endif
+PACKING += $(PATH_OUT)/dist/$(PACKAGE_NAME).zip
+PACKING += $(PATH_OUT)/dist/$(PACKAGE_NAME).wpi
+OTHER_CLEAN += $(PATH_OUT)/dist/$(PACKAGE_NAME).zip
+OTHER_CLEAN += $(PATH_OUT)/dist/$(PACKAGE_NAME).wpi
+
+# now include standard code
+include $(PATH_KBUILD)/rules.kMk
+
+# here follows standard gnu make inference rules
+
+# add new dependancy on build level info
+rc/rc.rc : rc/description.rc nversion.h rc/rc.rc_
+	$(QUIET)$(SED) "s;_VERSION_;$(VERSION);g" rc/rc.rc_ \
+		| $(SED) "s;_WPIVERSION_;$(subst .,\\\,$(VERSION));g" \
+		| $(SED) "s;_BUILD_;$(BUILD);g" \
+		| $(SED) "s;_VENDOR_;$(VENDOR);g" \
+		> rc/rc.rc
+
+
+# update bldlevel info
+rc/description.rc: config.kmk
+	@echo Writing build level informations
+	@cp rc/description.rc_ rc/description.rc
+	$(QUIET)cmd /c 'BldLevelInf.cmd -V"$(VERSION)" -N"$(VENDOR)" -D"NDPSMB - SMBFS NetDrive External Plugin Build $(BUILD)" -Len rc\\description.rc'
+
+# compile help file
+$(PATH_INST_BIN)/en/ndpsmb.hlp: ./help/ndpsmb.ipf nversion.h Config.kmk ./help/changelog.txt
+	-@mkdir $(PATH_OBJ)
+	-@mkdir $(PATH_OBJ)\en
+	@ppwizard.cmd ./help/ndpsmb.ipf /Pack:N /output:$(PATH_OBJ)/en/ndpsmb.ipf /other /WarningsRc:0 /Define:en /Define:ipf
+	-@mkdir $(PATH_INST_BIN)
+	-@mkdir $(PATH_INST_BIN)\en
+	$(TOOLKIT)\bin\ipfc.exe $(PATH_OBJ)/en/ndpsmb.ipf $(PATH_INST_BIN)/en/ndpsmb.hlp /COUNTRY=001 /CODEPAGE=850
+
+$(PATH_INST_BIN)/fr/ndpsmb.hlp: ./help/ndpsmb_fr.ipf nversion.h Config.kmk ./help/changelog.txt
+	-@mkdir $(PATH_OBJ)
+	-@mkdir $(PATH_OBJ)\fr
+	@ppwizard.cmd ./help/ndpsmb_fr.ipf /Pack:N /output:$(PATH_OBJ)/fr/ndpsmb.ipf /other /WarningsRc:0 /Define:fr /Define:ipf
+	-@mkdir $(PATH_INST_BIN)
+	-@mkdir $(PATH_INST_BIN)\fr
+	$(TOOLKIT)\bin\ipfc.exe $(PATH_OBJ)/fr/ndpsmb.ipf $(PATH_INST_BIN)/fr/ndpsmb.hlp /COUNTRY=001 /CODEPAGE=850
+
+$(PATH_INST_BIN)/de/ndpsmb.hlp: ./help/ndpsmb_de.ipf nversion.h Config.kmk ./help/changelog.txt
+	-@mkdir $(PATH_OBJ)
+	-@mkdir $(PATH_OBJ)\de
+	@ppwizard.cmd ./help/ndpsmb_de.ipf /Pack:N /output:$(PATH_OBJ)/de/ndpsmb.ipf /other /WarningsRc:0 /Define:de /Define:ipf
+	-@mkdir $(PATH_INST_BIN)
+	-@mkdir $(PATH_INST_BIN)\de
+	$(TOOLKIT)\bin\ipfc.exe $(PATH_OBJ)/de/ndpsmb.ipf $(PATH_INST_BIN)/de/ndpsmb.hlp /COUNTRY=001 /CODEPAGE=850
+
+
+# substitute macros in nversion.h
+nversion.h: Config.kmk nversion.tpl
+	$(QUIET)$(SED) "s;_VERSION_;$(VERSION);g" nversion.tpl \
+		| $(SED) "s;_WPIVERSION_;$(subst .,\\\,$(VERSION));g" \
+		| $(SED) "s;_BUILD_;$(BUILD);g" \
+		| $(SED) "s;_VENDOR_;$(VENDOR);g" \
+		> nversion.h
+
+# substitute macros in docs
+$(PATH_INST_BIN)/readme.txt: Config.kmk ./help/readme.txt nversion.h ./help/changelog.txt
+	@ppwizard.cmd ./help/readme.txt /option:KeepIndent=On /option:LeaveBlankLines=On /Pack:N /output:$(PATH_INST_BIN)/readme.txt /other /WarningsRc:0 /Define:en /Define:txt
+
+$(PATH_INST_BIN)/readme_fr.txt: Config.kmk ./help/readme_fr.txt nversion.h ./help/changelog.txt
+	@ppwizard.cmd ./help/readme_fr.txt /option:KeepIndent=On /option:LeaveBlankLines=On /Pack:N /output:$(PATH_INST_BIN)/readme_fr.txt /other /WarningsRc:0 /Define:fr /Define:txt
+
+$(PATH_INST_BIN)/readme_de.txt: Config.kmk ./help/readme_de.txt nversion.h ./help/changelog.txt
+	@ppwizard.cmd ./help/readme_de.txt /option:KeepIndent=On /option:LeaveBlankLines=On /Pack:N /output:$(PATH_INST_BIN)/readme_de.txt /other /WarningsRc:0 /Define:de /Define:txt
+
+
+# final: zip all files!
+$(PATH_OUT)/dist/$(PACKAGE_NAME).zip: \
+		$(PATH_INST_BIN)/instpl.cmd \
+		$(PATH_INST_BIN)/ndpsmb.ndp \
+		$(PATH_INST_BIN)/uninstpl.cmd \
+		$(PATH_INST_BIN)/ndpsmb.dll \
+		$(PATH_INST_BIN)/COPYING \
+		$(PATH_INST_BIN)/en/ndpsmb.hlp \
+		$(PATH_INST_BIN)/fr/ndpsmb.hlp \
+		$(PATH_INST_BIN)/de/ndpsmb.hlp \
+		$(PATH_INST_BIN)/readme.txt \
+		$(PATH_INST_BIN)/readme_fr.txt \
+		$(PATH_INST_BIN)/readme_de.txt
+	$(QUIET)$(MKDIR) -p $(PATH_OUT)/dist                              
+	$(QUIET)$(RM) -f $@
+	$(QUIET)$(REDIRECT) -C $(PATH_INST_BIN) -- zip -9Sr $@ .
+
+
+# final2: wpi all files!
+$(PATH_OUT)/dist/$(PACKAGE_NAME).wpi: \
+		./resources/ndpsmb.tpl \
+		$(PATH_INST_BIN)/instpl.cmd \
+		$(PATH_INST_BIN)/ndpsmb.ndp \
+		$(PATH_INST_BIN)/uninstpl.cmd \
+		$(PATH_INST_BIN)/ndpsmb.dll \
+		$(PATH_INST_BIN)/COPYING \
+		$(PATH_INST_BIN)/en/ndpsmb.hlp \
+		$(PATH_INST_BIN)/fr/ndpsmb.hlp \
+		$(PATH_INST_BIN)/de/ndpsmb.hlp \
+		$(PATH_INST_BIN)/readme.txt \
+		$(PATH_INST_BIN)/readme_fr.txt \
+		$(PATH_INST_BIN)/readme_de.txt
+	$(QUIET)$(MKDIR) -p $(PATH_OUT)/dist                              
+	$(QUIET)$(RM) -f $@
+	@ppwizard.cmd resources/ndpsmb.tpl /Pack:N /output:$(PATH_OBJ)/ndpsmb.wis /other /WarningsRc:0
+	$(QUIET)$(REDIRECT) -C $(PATH_INST_BIN) -- runwic.cmd $(subst /,\\,$@) -a 2 -r ".\en\*.hlp"
+	$(QUIET)$(REDIRECT) -C $(PATH_INST_BIN) -- runwic.cmd $(subst /,\\,$@) -a 3 -r ".\fr\*.hlp"
+	$(QUIET)$(REDIRECT) -C $(PATH_INST_BIN) -- runwic.cmd $(subst /,\\,$@) -a 4 -r ".\de\*.hlp"
+	$(QUIET)$(REDIRECT) -C $(PATH_INST_BIN) -- runwic.cmd $(subst /,\\,$@) -s $(subst /,\\,$(PATH_OBJ))\\ndpsmb.wis -a 1 "*"
