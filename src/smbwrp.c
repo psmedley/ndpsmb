@@ -433,6 +433,7 @@ int _System smbwrp_open(cli_state * cli, smbwrp_file * file)
 	}
 
 	debuglocal(4,"cli_open(%s) attr %08x mode %02x denymode %02x\n", file->fname, file->openattr, file->openmode, file->denymode);
+
 	if (!NT_STATUS_IS_OK(cli_open(cli, file->fname, file->openmode, file->denymode, &fd)))
 	{	
 		return os2cli_errno(cli);
@@ -697,8 +698,7 @@ int _System smbwrp_lseek(cli_state * cli, smbwrp_file * file, int whence, long l
 			status = cli_getattrE(cli, file->fd, 
 				  NULL, &size, NULL, NULL, NULL);
 			if (!NT_STATUS_IS_OK(status)) {
-				debuglocal(4,"call to cli_getattrE from smbwrp_lseek failed (Error1 %s)\n",cli_errstr(cli));
-				debuglocal(4,"call to cli_getattrE from smbwrp_lseek failed (Error2 %s)\n", nt_errstr(status));
+				debuglocal(4,"call to cli_getattrE from smbwrp_lseek failed (Error %s)\n", nt_errstr(status));
 				return os2cli_errno(cli);
 			}
 		}
