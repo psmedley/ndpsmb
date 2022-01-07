@@ -239,7 +239,7 @@ int _System smbwrp_connect( Resource* pRes, cli_state ** cli)
 	char * workgroup = NULL;
 	struct nmb_name called, calling;
 	char *p, *server_n = server;
-	struct cli_state * c;
+	struct cli_state * c = NULL;
 	char* dev_type;
 	int loginerror = 0;
 	NTSTATUS status;
@@ -248,7 +248,7 @@ int _System smbwrp_connect( Resource* pRes, cli_state ** cli)
 	int name_type= 0x20;
 	int flags = 0;
 	int signing_state = SMB_SIGNING_DEFAULT;
-	enum protocol_types protocol;
+	enum protocol_types protocol = PROTOCOL_NONE;
 	const char *name = NULL;
 	struct cli_credentials *creds = NULL;
 	TALLOC_CTX *ctx = talloc_tos();
@@ -301,7 +301,6 @@ int _System smbwrp_connect( Resource* pRes, cli_state ** cli)
 	}
 
 	protocol = smbXcli_conn_protocol(c->conn);
-
 	debuglocal(4,(" negotiated dialect[%s] against server[%s]\n",
 		 smb_protocol_types_string(protocol),
 		 smbXcli_conn_remote_name(c->conn)));
@@ -320,34 +319,23 @@ int _System smbwrp_connect( Resource* pRes, cli_state ** cli)
 				       pRes->krb5support, /* fallback_after_kerberos */ /* 2020-09-18 was false */
 				       false, /* use_ccache */
 				       false); /* password_is_nt_hash */
-	if (creds == NULL) {
-		debuglocal(4,"cli_session_creds_init() failed.\n");
-		return -1;
-	}
 
-
-	if (!NT_STATUS_IS_OK(cli_session_setup_creds(c, creds))) {
-		debuglocal(4,"%s/******** login failed\n", srv->username);
+	status = cli_session_setup_creds(c, creds);
+	if (!NT_STATUS_IS_OK(status)) {
 		loginerror = 1; // save the login error
 
-		/* try an anonymous login if it failed */
-		
 		/* If a password was not supplied then
 		 * try again with a null username. */
 		if (srv->password[0] || !srv->username[0] ||
 			pRes->krb5support ||
+			cli_credentials_authentication_requested(creds) ||
+			cli_credentials_is_anonymous(creds) ||
 		!NT_STATUS_IS_OK(status = cli_session_setup_anon(c))) {
 			debuglocal(1,"session setup failed: %s\n",
 				 nt_errstr(status));
-
-			if ((NT_STATUS_EQUAL(status,
-					    NT_STATUS_MORE_PROCESSING_REQUIRED)) ||
-			     NT_STATUS_EQUAL(status,
-					    NT_STATUS_INTERNAL_ERROR)){
+			if (NT_STATUS_EQUAL(status,
+					    NT_STATUS_MORE_PROCESSING_REQUIRED))
 				debuglocal(4,"did you forget to run kinit?\n");
-			} else
-				debuglocal(4,"Anonymous login failed\n");
-
 			cli_shutdown(c);
 			return 6;
 		}
@@ -387,7 +375,7 @@ int _System smbwrp_connect( Resource* pRes, cli_state ** cli)
 
 	/* must be a normal share */
  
-	status = cli_tree_connect(c, share, "?????", srv->password);
+	status = cli_tree_connect_creds(c, share, "?????", creds);
 
 	if (!NT_STATUS_IS_OK(status)) {
 		debuglocal(4,"tree connect failed: %s\n", nt_errstr(status));
@@ -397,17 +385,13 @@ int _System smbwrp_connect( Resource* pRes, cli_state ** cli)
 
 	if (pRes->encryptionsupport) {
 	debuglocal(4,"Attempting to force encryption\n");
-		status = cli_cm_force_encryption(c,
-					srv->username,
-					srv->password,
-					workgroup,
-					share);
+		status = cli_cm_force_encryption_creds(c,
+						       creds,
+						       share);
 		if (!NT_STATUS_IS_OK(status)) {
-			debuglocal(4,"cli_cm_force_encryption failed: %s\n", nt_errstr(status));
 			cli_shutdown(c);
 			return status;
 		}
-	debuglocal(4,"Forcing encryption succeeded!\n");
 	}
 
 	debuglocal(4," tconx ok.\n");
