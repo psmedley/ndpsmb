@@ -30,6 +30,8 @@
 #include "smbwrp.h"
 #include "util.h"
 
+void debugInit();
+void debugDelete();
 #define debug_printf(...) debuglocal(9, __VA_ARGS__)
 
 // -------------------------------------------------------------
@@ -284,12 +286,12 @@ int getfindinfoL(Connection * pConn, void * plist, smbwrp_fileinfo * finfo, ULON
 	fsphUnixTimeToDosDate(finfo->mtime, &stat.fdateLastWrite, &stat.ftimeLastWrite);
 	fsphUnixTimeToDosDate(finfo->btime, &stat.fdateCreation, &stat.ftimeCreation);
 	fsphUnixTimeToDosDate(finfo->atime, &stat.fdateLastAccess, &stat.ftimeLastAccess);
-	debug_printf( "fname %s\n", finfo->fname);
-	debug_printf( "btime %d %s", finfo->btime, ctime( (time_t*)&finfo->btime));
-	debug_printf( "atime %d %s", finfo->atime, ctime( (time_t*)&finfo->atime));
-	debug_printf( "mtime %d %s", finfo->mtime, ctime( (time_t*)&finfo->mtime));
-	debug_printf( "ctime %d %s", finfo->ctime, ctime( (time_t*)&finfo->ctime));
-	debug_printf( "ftimeLastAccess %02d:%02d:%02d\n", stat.ftimeLastWrite.hours, stat.ftimeLastWrite.minutes, stat.ftimeLastWrite.twosecs*2);
+	//debug_printf( "fname %s\n", finfo->fname);
+	//debug_printf( "btime %d %s", finfo->btime, ctime( (time_t*)&finfo->btime));
+	//debug_printf( "atime %d %s", finfo->atime, ctime( (time_t*)&finfo->atime));
+	//debug_printf( "mtime %d %s", finfo->mtime, ctime( (time_t*)&finfo->mtime));
+	//debug_printf( "ctime %d %s", finfo->ctime, ctime( (time_t*)&finfo->ctime));
+	//debug_printf( "ftimeLastAccess %02d:%02d:%02d\n", stat.ftimeLastWrite.hours, stat.ftimeLastWrite.minutes, stat.ftimeLastWrite.twosecs*2);
 
 	ph->fsphAddFile32L(plist, &stat, name, strlen(name), finfo, sizeof(*finfo), 0);
 	return 1;

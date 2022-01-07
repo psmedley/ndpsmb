@@ -13,7 +13,7 @@
 VERSION	= 3.7.2
 BUILD	= 20200918
 VENDOR  = netlabs
-SAMBA	= u:/dev/samba-4.11.11
+SAMBA	= u:/dev/samba-ubuntu-4.11.6/samba
 TOOLKIT = u:/os2tk45
 
 # libz is needed by samba client, if it's found in the path leave the below definition blank. otherwise set it

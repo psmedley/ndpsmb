@@ -302,52 +302,9 @@ int _System smbwrp_connect( Resource* pRes, cli_state ** cli)
 
 	protocol = smbXcli_conn_protocol(c->conn);
 
-	switch (protocol) {
-	case PROTOCOL_CORE:
-		name = "CORE";
-		break;
-	case PROTOCOL_COREPLUS:
-		name = "COREPLUS";
-		break;
-	case PROTOCOL_LANMAN1:
-		name = "LANMAN1";
-		break;
-	case PROTOCOL_LANMAN2:
-		name = "LANMAN2";
-		break;
-	case PROTOCOL_NT1:
-		name = "NT1";
-		break;
-	case PROTOCOL_SMB2_02:
-		name = "SMB2_02";
-		break;
-	case PROTOCOL_SMB2_10:
-		name = "SMB2_10";
-		break;
-	case PROTOCOL_SMB2_22:
-		name = "SMB2_22";
-		break;
-	case PROTOCOL_SMB2_24:
-		name = "SMB2_24";
-		break;
-	case PROTOCOL_SMB3_00:
-		name = "SMB3_00";
-		break;
-	case PROTOCOL_SMB3_02:
-		name = "SMB3_02";
-		break;
-	case PROTOCOL_SMB3_10:
-		name = "SMB3_10";
-		break;
-	case PROTOCOL_SMB3_11:
-		name = "SMB3_11";
-		break;
-	default:
-		name = "Unknown";
-		break;
-	}
-
-	debuglocal(4,"Server supports %s protocol\n", name);
+	debuglocal(4,(" negotiated dialect[%s] against server[%s]\n",
+		 smb_protocol_types_string(protocol),
+		 smbXcli_conn_remote_name(c->conn)));
 
 	if (smbXcli_conn_protocol(c->conn) >= PROTOCOL_SMB2_02) {
 		/* Ensure we ask for some initial credits. */
@@ -1142,7 +1099,7 @@ NTSTATUS list_files_smb2(struct cli_state *cli,
 				wrpfinfo.atime = convert_timespec_to_time_t(finfo[0].atime_ts);
 				wrpfinfo.mtime = convert_timespec_to_time_t(finfo[0].mtime_ts);
 				wrpfinfo.ctime = convert_timespec_to_time_t(finfo[0].ctime_ts);
-				wrpfinfo.easize = finfo[0].easize;
+				wrpfinfo.easize = -1;
 				strncpy(wrpfinfo.fname, finfo[0].name, sizeof(wrpfinfo.fname) -1);
 
 				status = fn(cli->dfs_mountpoint,
@@ -1282,7 +1239,7 @@ static int list_files(struct cli_state *cli, const char *mask, uint16_t attribut
 		wrpfinfo.atime = convert_timespec_to_time_t(finfo[i].atime_ts);
 		wrpfinfo.mtime = convert_timespec_to_time_t(finfo[i].mtime_ts);
 		wrpfinfo.ctime = convert_timespec_to_time_t(finfo[i].ctime_ts);
-		wrpfinfo.easize = finfo[i].easize;
+		wrpfinfo.easize = -1;
 		strncpy(wrpfinfo.fname, finfo[i].name, sizeof(wrpfinfo.fname) -1);
 
 		fn(cli->dfs_mountpoint, &wrpfinfo, mask, state);
@@ -1516,7 +1473,6 @@ static int unilistea(cli_state * cli, char *fname, void * buffer, unsigned long 
 		}
 	}
 	pfealist->cbList = gotsize;
-	debuglocal(4,"ret size = %d\n", gotsize);
 
 	talloc_destroy(mem_ctx);
 	return 0;
@@ -1532,7 +1488,7 @@ int _System smbwrp_listea(cli_state * cli, char *fname, void * buffer, unsigned 
 		return maperror(EINVAL);
 	}
 
-	debuglocal(4,"EALIst for <%s>\n", fname);
+	debuglocal(4,"EAList for <%s>\n", fname);
 	return unilistea(cli, fname, buffer, size);
 }
 
