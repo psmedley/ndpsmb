@@ -436,6 +436,7 @@ int _System smbwrp_open(cli_state * cli, smbwrp_file * file)
 
 	if (!NT_STATUS_IS_OK(cli_open(cli, file->fname, file->openmode, file->denymode, &fd)))
 	{	
+		debuglocal(4,"cli_open failed - %s\n", cli_errstr(cli));
 		return os2cli_errno(cli);
 	}
 	file->fd = fd;
@@ -460,7 +461,7 @@ int _System smbwrp_read(cli_state * cli, smbwrp_file * file, void *buf, unsigned
 	ret = cli_read(cli, file->fd, buf, file->offset, count, &nread);
 	if (ret == -1) 
 	{
-		debuglocal(4," smbwrp_read - cli_read ret = %d\n",ret);
+		debuglocal(4,"cli_read failed - %s\n", cli_errstr(cli));
 		return os2cli_errno(cli);
 	}
 
@@ -489,6 +490,7 @@ int _System smbwrp_write(cli_state * cli, smbwrp_file * file, void *buf, unsigne
 //debuglocal(1,("Write %x %d %lld %d", cli, file->fd, file->offset, count));
 	status = cli_writeall(cli, file->fd, 0, buf, file->offset, count, &ret);
 	if (!NT_STATUS_IS_OK(status)) {
+		debuglocal(4,"cli_writeall failed - %s\n", cli_errstr(cli));
 		return os2cli_errno(cli);
 	}
 
@@ -522,6 +524,7 @@ int _System smbwrp_close(cli_state * cli, smbwrp_file * file)
 	
 	if (!NT_STATUS_IS_OK(cli_close(cli, file->fd)))
 	{
+		debuglocal(4,"cli_close failed - %s\n", cli_errstr(cli));
 		rc = os2cli_errno(cli);
 	}
 
@@ -535,8 +538,8 @@ int _System smbwrp_close(cli_state * cli, smbwrp_file * file)
 		if (!NT_STATUS_IS_OK(cli_setpathinfo_basic(cli, file->fname, file->btime, file->atime, file->mtime, file->ctime, file->openattr))) 
 #endif
 		{
-			debuglocal(4,"Set pathinfo on close failed %d\n", os2cli_errno(cli));
-			//rc = os2cli_errno(cli);
+		debuglocal(4,"cli_setpathinfo_basic in smbwrp_close failed - %s\n", cli_errstr(cli));
+				//rc = os2cli_errno(cli);
 		}
 	}
 
@@ -603,6 +606,7 @@ int _System smbwrp_rename(cli_state * cli, char *oldname, char *newname)
 	debuglocal(1,"Rename <%s> -> <%s>\n", oldname, newname);
 	if (!NT_STATUS_IS_OK(cli_rename(cli, oldname, newname, false)))
 	{
+		debuglocal(4,"cli_rename failed - %s\n", cli_errstr(cli));
 		return os2cli_errno(cli);
 	}
 	return 0;
@@ -625,6 +629,7 @@ debuglocal(4,"Setting on <%s> attr %04x, time %lu (timezone /%lu\n", finfo->fnam
 	if (!NT_STATUS_IS_OK(cli_setatr(cli, finfo->fname, finfo->attr, finfo->mtime))
 		&& !NT_STATUS_IS_OK(cli_setatr(cli, finfo->fname, finfo->attr, 0)))
 	{
+		debuglocal(4,"cli_setatr failed - %s\n", cli_errstr(cli));
 		return os2cli_errno(cli);
 	}	
 	return 0;
@@ -655,6 +660,7 @@ int _System smbwrp_unlink(cli_state * cli, const char *fname)
 #endif
 	if (!NT_STATUS_IS_OK(cli_unlink(cli, fname, aSYSTEM | aHIDDEN))) 
 	{
+		debuglocal(4,"cli_unlink failed - %s\n", cli_errstr(cli));
 		return os2cli_errno(cli);
 	}
 	return 0;
@@ -809,6 +815,7 @@ int _System smbwrp_getattr(smbwrp_server *srv, cli_state * cli, smbwrp_fileinfo 
 		finfo->ctime = finfo->ctime;  //was mtime
 		return 0;
 	}
+	debuglocal(4,"smbwrp_getattr failed - %s\n", cli_errstr(cli));
 	return os2cli_errno(cli);
 }
 
@@ -1284,6 +1291,7 @@ int _System smbwrp_filelist(smbwrp_server *srv, cli_state * cli, filelist_state 
 		if (net_share_enum_rpc(cli, smbwrp_share_add, state) < 0 &&
 			    cli_RNetShareEnum(cli,smbwrp_share_add, state) < 0) 
 		{
+			debuglocal(4,"cli_RNetShareEnum failed - %s\n", cli_errstr(cli));
 			return os2cli_errno(cli);
 		}
 	} else 
@@ -1348,6 +1356,7 @@ int _System smbwrp_mkdir(cli_state * cli, char *fname)
 
 	if (!NT_STATUS_IS_OK(cli_mkdir(cli, fname)))
 	{
+		debuglocal(4,"cli_mkdir failed - %s\n", cli_errstr(cli));
 		return os2cli_errno(cli);
 	}
 	return 0;
@@ -1365,6 +1374,7 @@ int _System smbwrp_rmdir(cli_state * cli, char *fname)
 
 	if (!NT_STATUS_IS_OK(cli_rmdir(cli, fname)))
 	{
+		debuglocal(4,"cli_rmdir failed - %s\n", cli_errstr(cli));
 		return os2cli_errno(cli);
 	}
 	return 0;
@@ -1381,6 +1391,7 @@ int _System smbwrp_setea(cli_state * cli, char *fname, char * name, unsigned cha
 	}
 	if (!NT_STATUS_IS_OK(cli_set_ea_path(cli, fname, name, value, size)))
 	{
+		debuglocal(4,"cli_set_ea_path failed - %s\n", cli_errstr(cli));
 		return os2cli_errno(cli);
 	}
 	return 0;
@@ -1397,6 +1408,7 @@ int _System smbwrp_fsetea(cli_state * cli, smbwrp_file *file, char * name, unsig
 	}
 	if (!NT_STATUS_IS_OK(cli_set_ea_fnum(cli, file->fd, name, value, size)))
 	{
+		debuglocal(4,"cli_set_ea_fnum failed - %s\n", cli_errstr(cli));
 		return os2cli_errno(cli);
 	}
 	return 0;
@@ -1435,7 +1447,7 @@ static int unilistea(cli_state * cli, char *fname, void * buffer, unsigned long 
 
 	if (!NT_STATUS_IS_OK(cli_get_ea_list_path(cli, fname, mem_ctx, &num_eas, &ea_list)))
 	{
-		debuglocal(4,"ea_get_file list failed - %s\n", cli_errstr(cli));
+		debuglocal(4,"cli_ea_get_file list failed - %s\n", cli_errstr(cli));
 		talloc_destroy(mem_ctx);
 		return os2cli_errno(cli);
 	}
