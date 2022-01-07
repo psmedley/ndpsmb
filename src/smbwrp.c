@@ -665,6 +665,8 @@ a wrapper for lseek()
 int _System smbwrp_lseek(cli_state * cli, smbwrp_file * file, int whence, long long offset)
 {
 	off_t size;
+	NTSTATUS status;
+
 	if (!cli || !file) 
 	{
 		return maperror(EINVAL);
@@ -688,13 +690,17 @@ int _System smbwrp_lseek(cli_state * cli, smbwrp_file * file, int whence, long l
 		{
 			return maperror(EINVAL);
 		}
-		if (!NT_STATUS_IS_OK(cli_qfileinfo_basic(cli, file->fd, 
+		status = cli_qfileinfo_basic(cli, file->fd, 
 				   NULL, &size, NULL, NULL, NULL, 
-				   NULL, NULL)) &&
-		    !NT_STATUS_IS_OK(cli_getattrE(cli, file->fd, 
-				  NULL, &size, NULL, NULL, NULL)))
-		{
-			return os2cli_errno(cli);
+				   NULL, NULL);
+		if (!NT_STATUS_IS_OK(status)) {
+			status = cli_getattrE(cli, file->fd, 
+				  NULL, &size, NULL, NULL, NULL);
+			if (!NT_STATUS_IS_OK(status)) {
+				debuglocal(4,"call to cli_getattrE from smbwrp_lseek failed (Error1 %s)\n",cli_errstr(cli));
+				debuglocal(4,"call to cli_getattrE from smbwrp_lseek failed (Error2 %s)\n", nt_errstr(status));
+				return os2cli_errno(cli);
+			}
 		}
 		file->offset = size + offset;
 		break;
@@ -817,6 +823,7 @@ int _System smbwrp_fgetattr(cli_state * cli, smbwrp_file *file, smbwrp_fileinfo 
 	struct timespec mtime;
 	struct timespec ctime;
 	SMB_INO_T ino = 0;
+	NTSTATUS status;
 
 	if (!cli || !file || !finfo) 
 	{
@@ -824,13 +831,16 @@ int _System smbwrp_fgetattr(cli_state * cli, smbwrp_file *file, smbwrp_fileinfo 
 	}
 
 	strncpy(finfo->fname, file->fname, sizeof(finfo->fname) - 1);
-	if (!NT_STATUS_IS_OK(cli_qfileinfo_basic(cli, file->fd, 
+	status = cli_qfileinfo_basic(cli, file->fd, 
 			   (unsigned short *)&finfo->attr, (off_t *)&finfo->size, &btime, &atime, &mtime, &ctime,
-			   &ino)))
+			   &ino);
+	if (!NT_STATUS_IS_OK(status))
 	{
-		if (!NT_STATUS_IS_OK(cli_getattrE(cli, file->fd, 
-			  (unsigned short *)&finfo->attr, (&finfo->size), (time_t *)&finfo->ctime, (time_t *)&finfo->atime, (time_t *)&finfo->mtime)))
+		status = cli_getattrE(cli, file->fd, 
+			  (unsigned short *)&finfo->attr, (&finfo->size), (time_t *)&finfo->ctime, (time_t *)&finfo->atime, (time_t *)&finfo->mtime);
+		if (!NT_STATUS_IS_OK(status))
 		{
+			debuglocal(4,"call to cli_getattrE from smbwrp_fgetattr failed (Error %s)\n", nt_errstr(status));
 			return os2cli_errno(cli);
 		}
 		else
