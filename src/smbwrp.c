@@ -23,17 +23,38 @@
 #include "librpc/gen_ndr/ndr_srvsvc_c.h"
 #include "libsmb/libsmb.h"
 #include "libsmb/clirap.h"
+#include "lib/util/tevent_ntstatus.h"
 #include "param.h"
 #include "smb/smbXcli_base.h"
 #include "trans2.h"
 #include "smbwrp.h"
 #include "util.h"
 #include <math.h>
-
+bool writeLog(); //defined in debug.c
+int getfindinfoL(Connection * pConn, void * plist, smbwrp_fileinfo * finfo, u_long ulAttribute, char * mask); // defined in ndpsmb.c
 struct smb2_hnd {
 	uint64_t fid_persistent;
 	uint64_t fid_volatile;
 };
+
+bool windows_parent_dirname(TALLOC_CTX *mem_ctx,
+				const char *dir,
+				char **parent,
+				const char **name);
+NTSTATUS map_fnum_to_smb2_handle(struct cli_state *cli,
+				uint16_t fnum,		/* In */
+				struct smb2_hnd **pph);	/* Out */
+
+NTSTATUS parse_finfo_id_both_directory_info(uint8_t *dir_data,
+				uint32_t dir_data_length,
+				struct file_info *finfo,
+				uint32_t *next_offset);
+NTSTATUS net_share_enum_rpc(struct cli_state *cli,
+                   void (*fn)(const char *name,
+                              uint32_t type,
+                              const char *comment,
+                              void *state),
+                   void *state);
 
 /*
  * Wrapper for cli_errno to return not connected error on negative fd
@@ -1167,14 +1188,14 @@ NTSTATUS list_files_smb2(struct cli_state *cli,
 
 /****************************************************************************
  Do a directory listing, calling fn on each file found.
- Modified from cli_list
+ Modified from cli_list() in source3/libsmb/clilist.c
 ****************************************************************************/
 static int list_files(struct cli_state *cli, const char *mask, uint16_t attribute,
 		  void (*fn)(const char *, smbwrp_fileinfo *, const char *,
 			     void *), void *state)
 {
-	TALLOC_CTX *frame = talloc_stackframe();
-	struct event_context *ev;
+	TALLOC_CTX *frame = NULL;
+	struct tevent_context *ev;
 	struct tevent_req *req;
 	NTSTATUS status = NT_STATUS_NO_MEMORY;
 	struct file_info *finfo;
@@ -1191,9 +1212,10 @@ static int list_files(struct cli_state *cli, const char *mask, uint16_t attribut
 	}
 
 	if (smbXcli_conn_protocol(cli->conn) >= PROTOCOL_SMB2_02) {
-	debuglocal(4,"SMB2 detected, calling list_files_smb2()\n");
 		return list_files_smb2(cli, mask, attribute, fn, state);
 	}
+
+	frame = talloc_stackframe();
 
 	if (smbXcli_conn_has_async_calls(cli->conn)) {
 		/*
@@ -1210,14 +1232,11 @@ static int list_files(struct cli_state *cli, const char *mask, uint16_t attribut
 	info_level = (smb1cli_conn_capabilities(cli->conn) & CAP_NT_SMBS)
 		? SMB_FIND_FILE_BOTH_DIRECTORY_INFO : SMB_FIND_EA_SIZE;
 
-	debuglocal(4,"list_files level %d. mask <%s>\n", info_level, mask);
-
 	req = cli_list_send(frame, ev, cli, mask, attribute, info_level);
 	if (req == NULL) {
 		goto fail;
 	}
-	if (!tevent_req_poll(req, ev)) {
-		status = map_nt_error_from_unix(errno);
+	if (!tevent_req_poll_ntstatus(req, ev, &status)) {
 		goto fail;
 	}
 
@@ -1227,9 +1246,6 @@ static int list_files(struct cli_state *cli, const char *mask, uint16_t attribut
 	}
 
 	dircachectx = dircache_write_begin(state, num_finfo);
-
-	debuglocal(4,"list_files: got %d files\n", num_finfo);
-
 
 	for (i=0; i<num_finfo; i++) {
 		//as samba and this client have different finfo, we need to convert

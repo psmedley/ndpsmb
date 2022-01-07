@@ -30,6 +30,7 @@
 #include <sys/stat.h>
 #include "nversion.h"
 
+const char * smbwrp_getVersion();
 int debuglevel = 9; // we set it to 9, so we get all messages
 char logfile[_MAX_PATH +1];
 char debugfile[_MAX_PATH +1];
