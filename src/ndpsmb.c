@@ -1794,7 +1794,17 @@ int smbopen(Connection *pConn, char *szFileName, int flags, ULONG ulOpenMode, UL
 		switch (ulOpenMode & 3)
 		{
 			case OPEN_ACCESS_READONLY : flags |= O_RDONLY; break;
+#if 0
 			case OPEN_ACCESS_WRITEONLY : flags |= O_WRONLY; break;
+#else
+			/*  There is a behavioral change in SMB2 compared to SMB1 
+			    When SMB2 opens a file in write only mode SMB2 GetInfo
+			    requests fail with NT_STATUS_ACCESS_DENIED
+			    Ideally we should use O_WRITEONLY for SMB1 and O_RDWR
+			    only for SMB2+
+			*/
+			case OPEN_ACCESS_WRITEONLY : flags |= O_RDWR; break;
+#endif
 			case OPEN_ACCESS_READWRITE : flags |= O_RDWR; break;
 			default : flags |= O_RDWR;
 		}

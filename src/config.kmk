@@ -10,8 +10,8 @@
 # in bldlevel informations
 # adjust also the date please
 #
-VERSION	= 3.7.2
-BUILD	= 20200918
+VERSION	= 3.7.3
+BUILD	= 2022xxxx
 VENDOR  = netlabs
 SAMBA	= u:/dev/samba-ubuntu-4.11.6/samba
 TOOLKIT = u:/os2tk45
