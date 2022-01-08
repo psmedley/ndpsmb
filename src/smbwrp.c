@@ -1191,7 +1191,7 @@ NTSTATUS list_files_smb2(struct cli_state *cli,
  Modified from cli_list() in source3/libsmb/clilist.c
 ****************************************************************************/
 static int list_files(struct cli_state *cli, const char *mask, uint16_t attribute,
-		  void (*fn)(const char *, smbwrp_fileinfo *, const char *,
+		  NTSTATUS (*fn)(const char *, smbwrp_fileinfo *, const char *,
 			     void *), void *state)
 {
 	TALLOC_CTX *frame = NULL;

@@ -21,6 +21,7 @@
 #ifndef _SMBWRP_H
 #define _SMBWRP_H
 
+#include <sys/types.h>
 #if !defined (O_RDONLY)
 #define O_ACCMODE       0x03    /* mask */
 #define O_RDONLY        0x00
@@ -206,7 +207,8 @@ int _System smbwrp_echo(cli_state * cli);
 int dircache_create(struct DirectoryCache **ppdc, unsigned long ulExpirationTime, int cMaxEntries);
 void dircache_delete(struct DirectoryCache *pdc);
 
-typedef void FNADDDIRENTRY(const char*, smbwrp_fileinfo *, const char *, void *);
+typedef uint32_t NTSTATUS;
+typedef NTSTATUS FNADDDIRENTRY(const char*, smbwrp_fileinfo *, const char *, void *);
 typedef FNADDDIRENTRY *PFNADDDIRENTRY;
 
 /* Note: dircache_list_files or dircache_write_begin construct the directory path
