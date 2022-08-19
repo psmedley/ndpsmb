@@ -279,12 +279,16 @@ int _System smbwrp_connect( Resource* pRes, cli_state ** cli)
 		workgroup = srv->workgroup;
 	}
 
+#if 0 // samba 4.13 doesn't have these flags - does it automatically attempt kerberos?
 	if (pRes->krb5support) {
 		flags |= CLI_FULL_CONNECTION_USE_KERBEROS;
 		debuglocal(1,"Connecting to \\\\%s:%s\\%s using kerberos authentication. Master %s:%d\n", workgroup, server, share, srv->master, srv->ifmastergroup);
 	} else {
 		debuglocal(1,"Connecting to \\\\%s:*********@%s:%s\\%s. Master %s:%d\n", srv->username,  workgroup, server, share, srv->master, srv->ifmastergroup);
 	}
+#else
+		debuglocal(1,"Connecting to \\\\%s:*********@%s:%s\\%s. Master %s:%d\n", srv->username,  workgroup, server, share, srv->master, srv->ifmastergroup);
+#endif
 
 	if (pRes->ntlmv1support) {
 		lp_set_cmdline("client ntlmv2 auth","no");
@@ -457,7 +461,6 @@ int _System smbwrp_open(cli_state * cli, smbwrp_file * file)
 
 	if (!NT_STATUS_IS_OK(cli_open(cli, file->fname, file->openmode, file->denymode, &fd)))
 	{	
-		debuglocal(4,"cli_open failed - %s\n", cli_errstr(cli));
 		return os2cli_errno(cli);
 	}
 	file->fd = fd;
@@ -482,7 +485,6 @@ int _System smbwrp_read(cli_state * cli, smbwrp_file * file, void *buf, unsigned
 	ret = cli_read(cli, file->fd, buf, file->offset, count, &nread);
 	if (ret == -1) 
 	{
-		debuglocal(4,"cli_read failed - %s\n", cli_errstr(cli));
 		return os2cli_errno(cli);
 	}
 
@@ -511,7 +513,6 @@ int _System smbwrp_write(cli_state * cli, smbwrp_file * file, void *buf, unsigne
 //debuglocal(1,("Write %x %d %lld %d", cli, file->fd, file->offset, count));
 	status = cli_writeall(cli, file->fd, 0, buf, file->offset, count, &ret);
 	if (!NT_STATUS_IS_OK(status)) {
-		debuglocal(4,"cli_writeall failed - %s\n", cli_errstr(cli));
 		return os2cli_errno(cli);
 	}
 
@@ -545,7 +546,6 @@ int _System smbwrp_close(cli_state * cli, smbwrp_file * file)
 	
 	if (!NT_STATUS_IS_OK(cli_close(cli, file->fd)))
 	{
-		debuglocal(4,"cli_close failed - %s\n", cli_errstr(cli));
 		rc = os2cli_errno(cli);
 	}
 
@@ -553,13 +553,9 @@ int _System smbwrp_close(cli_state * cli, smbwrp_file * file)
 	{
 		debuglocal(4,"Set pathinfo on close %s %08x b%d a%d m%d c%d\n", file->fname, file->openattr, file->btime, file->atime, file->mtime, file->ctime);
 
-#if 0
-		if (!NT_STATUS_IS_OK(cli_setpathinfo_basic(cli, file->fname, file->ctime, 0, file->mtime, 0, file->openattr))) 
-#else
-		if (!NT_STATUS_IS_OK(cli_setpathinfo_basic(cli, file->fname, file->btime, file->atime, file->mtime, file->ctime, file->openattr))) 
-#endif
+		if (!NT_STATUS_IS_OK(cli_setpathinfo_ext(cli, file->fname, convert_time_t_to_timespec(file->btime), convert_time_t_to_timespec(file->atime), convert_time_t_to_timespec(file->mtime), convert_time_t_to_timespec(file->ctime), file->openattr))) 
 		{
-		debuglocal(4,"cli_setpathinfo_basic in smbwrp_close failed - %s\n", cli_errstr(cli));
+		debuglocal(4,"cli_setpathinfo_ext in smbwrp_close failed - %d\n", os2cli_errno(cli));
 				//rc = os2cli_errno(cli);
 		}
 	}
@@ -627,7 +623,6 @@ int _System smbwrp_rename(cli_state * cli, char *oldname, char *newname)
 	debuglocal(1,"Rename <%s> -> <%s>\n", oldname, newname);
 	if (!NT_STATUS_IS_OK(cli_rename(cli, oldname, newname, false)))
 	{
-		debuglocal(4,"cli_rename failed - %s\n", cli_errstr(cli));
 		return os2cli_errno(cli);
 	}
 	return 0;
@@ -650,7 +645,6 @@ debuglocal(4,"Setting on <%s> attr %04x, time %lu (timezone /%lu\n", finfo->fnam
 	if (!NT_STATUS_IS_OK(cli_setatr(cli, finfo->fname, finfo->attr, finfo->mtime))
 		&& !NT_STATUS_IS_OK(cli_setatr(cli, finfo->fname, finfo->attr, 0)))
 	{
-		debuglocal(4,"cli_setatr failed - %s\n", cli_errstr(cli));
 		return os2cli_errno(cli);
 	}	
 	return 0;
@@ -681,7 +675,6 @@ int _System smbwrp_unlink(cli_state * cli, const char *fname)
 #endif
 	if (!NT_STATUS_IS_OK(cli_unlink(cli, fname, aSYSTEM | aHIDDEN))) 
 	{
-		debuglocal(4,"cli_unlink failed - %s\n", cli_errstr(cli));
 		return os2cli_errno(cli);
 	}
 	return 0;
@@ -718,15 +711,25 @@ int _System smbwrp_lseek(cli_state * cli, smbwrp_file * file, int whence, long l
 		{
 			return maperror(EINVAL);
 		}
-		status = cli_qfileinfo_basic(cli, file->fd, 
+		if (!NT_STATUS_IS_OK(cli_qfileinfo_basic(cli, file->fd, 
 				   NULL, &size, NULL, NULL, NULL, 
-				   NULL, NULL);
-		if (!NT_STATUS_IS_OK(status)) {
-			status = cli_getattrE(cli, file->fd, 
-				  NULL, &size, NULL, NULL, NULL);
-			if (!NT_STATUS_IS_OK(status)) {
-				debuglocal(4,"call to cli_getattrE from smbwrp_lseek failed (Error %s)\n", nt_errstr(status));
+				   NULL, NULL)) /*&&
+		    !NT_STATUS_IS_OK(smbcli_getattrE(cli, file->fd, 
+				  NULL, &size, NULL, NULL, NULL))*/)
+		{
+			/*  There is a behavioral change in SMB2 compared to SMB1 
+			    When SMB2 opens a file in write only mode SMB2 GetInfo
+			    requests fail with NT_STATUS_ACCESS_DENIED
+			    It would be better to check the cli_qfileinfo_basic
+			    return for NT_STATUS_ACCESS_DENIED and only then map
+			    the return code to 0.  Otherwise we are likely to
+			    have hard to find errors in the future.
+			*/
+
+			if ((file->openmode & O_ACCMODE) != O_WRONLY)
 				return os2cli_errno(cli);
+			else {
+				return 0;
 			}
 		}
 		file->offset = size + offset;
@@ -757,7 +760,7 @@ int _System smbwrp_getattr(smbwrp_server *srv, cli_state * cli, smbwrp_fileinfo 
 	debuglocal(4,"getattr %d %d <%s>\n", smb1cli_conn_capabilities(cli->conn) & CAP_NOPATHINFO2, smb1cli_conn_capabilities(cli->conn) & CAP_NT_SMBS, finfo->fname);
 
 	if (NT_STATUS_IS_OK(cli_qpathinfo2(cli, finfo->fname, &btime, &atime, &mtime, &ctime,
-			   (off_t *)&finfo->size, (unsigned short *)&finfo->attr, &ino)))
+			   (off_t *)&finfo->size, (uint32_t*) &finfo->attr, &ino)))
 	{
 		finfo->attr &= 0x7F;
 		finfo->btime = convert_timespec_to_time_t(btime);
@@ -777,7 +780,7 @@ int _System smbwrp_getattr(smbwrp_server *srv, cli_state * cli, smbwrp_fileinfo 
 
 	debuglocal(4, "smbwrp_getattr, calling cli_qpathinfo3\n");
 	if (NT_STATUS_IS_OK(cli_qpathinfo3(cli, finfo->fname, &btime, &atime, &mtime, &ctime,
-			   (off_t *)&finfo->size, (unsigned short *)&finfo->attr, &ino)))
+			   (off_t *)&finfo->size, (uint32_t*) &finfo->attr, &ino)))
 	{
 		finfo->attr &= 0x7F;
 		finfo->btime = convert_timespec_to_time_t(btime);
@@ -827,7 +830,7 @@ int _System smbwrp_getattr(smbwrp_server *srv, cli_state * cli, smbwrp_fileinfo 
 		return maperror(ret);
 	}
 
-	if (NT_STATUS_IS_OK(cli_getatr(cli, finfo->fname, (unsigned short *)&finfo->attr, &finfo->size, (time_t *)&finfo->mtime)))
+	if (NT_STATUS_IS_OK(cli_getatr(cli, finfo->fname, (uint32_t*) &finfo->attr, &finfo->size, (time_t *)&finfo->mtime)))
 	{
 //debuglocal(2,("gotattr1 %08x <%s>\n", finfo->attr, finfo->fname));
 		finfo->btime = finfo->btime;  
@@ -836,7 +839,6 @@ int _System smbwrp_getattr(smbwrp_server *srv, cli_state * cli, smbwrp_fileinfo 
 		finfo->ctime = finfo->ctime;  //was mtime
 		return 0;
 	}
-	debuglocal(4,"smbwrp_getattr failed - %s\n", cli_errstr(cli));
 	return os2cli_errno(cli);
 }
 
@@ -859,24 +861,11 @@ int _System smbwrp_fgetattr(cli_state * cli, smbwrp_file *file, smbwrp_fileinfo 
 	}
 
 	strncpy(finfo->fname, file->fname, sizeof(finfo->fname) - 1);
-	status = cli_qfileinfo_basic(cli, file->fd, 
-			   (unsigned short *)&finfo->attr, (off_t *)&finfo->size, &btime, &atime, &mtime, &ctime,
-			   &ino);
-	if (!NT_STATUS_IS_OK(status))
+	if (!NT_STATUS_IS_OK(cli_qfileinfo_basic(cli, file->fd, 
+			   (uint32_t*) &finfo->attr, (off_t *)&finfo->size, &btime, &atime, &mtime, &ctime,
+			   &ino)))
 	{
-		status = cli_getattrE(cli, file->fd, 
-			  (unsigned short *)&finfo->attr, (&finfo->size), (time_t *)&finfo->ctime, (time_t *)&finfo->atime, (time_t *)&finfo->mtime);
-		if (!NT_STATUS_IS_OK(status))
-		{
-			debuglocal(4,"call to cli_getattrE from smbwrp_fgetattr failed (Error %s)\n", nt_errstr(status));
-			return os2cli_errno(cli);
-		}
-		else
-		{
-			finfo->ctime -= get_time_zone(finfo->ctime);
-			finfo->atime -= get_time_zone(finfo->atime);
-			finfo->mtime -= get_time_zone(finfo->mtime);
-		}
+		return os2cli_errno(cli);
 	}
 	else
 	{
@@ -1101,8 +1090,7 @@ NTSTATUS list_files_smb2(struct cli_state *cli,
 				goto fail;
 			}
 
-			if (dir_check_ftype((uint32_t)finfo->mode,
-					(uint32_t)attribute)) {
+			if (dir_check_ftype(finfo->attr, attribute)) {
 				/*
 				 * Only process if attributes match.
 				 * On SMB1 server does this, so on
@@ -1116,7 +1104,7 @@ NTSTATUS list_files_smb2(struct cli_state *cli,
 				//as samba and this client have different finfo, we need to convert
 				memset(&wrpfinfo, 0, sizeof(wrpfinfo));
 				wrpfinfo.size = finfo[0].size;
-				wrpfinfo.attr = finfo[0].mode;
+				wrpfinfo.attr = finfo[0].attr;
 				wrpfinfo.btime = convert_timespec_to_time_t(finfo[0].btime_ts);
 				wrpfinfo.atime = convert_timespec_to_time_t(finfo[0].atime_ts);
 				wrpfinfo.mtime = convert_timespec_to_time_t(finfo[0].mtime_ts);
@@ -1251,7 +1239,7 @@ static int list_files(struct cli_state *cli, const char *mask, uint16_t attribut
 		//as samba and this client have different finfo, we need to convert
 		memset(&wrpfinfo, 0, sizeof(wrpfinfo));
 		wrpfinfo.size = finfo[i].size;
-		wrpfinfo.attr = finfo[i].mode;
+		wrpfinfo.attr = finfo[i].attr;
 		wrpfinfo.btime = convert_timespec_to_time_t(finfo[i].btime_ts);
 		wrpfinfo.atime = convert_timespec_to_time_t(finfo[i].atime_ts);
 		wrpfinfo.mtime = convert_timespec_to_time_t(finfo[i].mtime_ts);
@@ -1307,7 +1295,6 @@ int _System smbwrp_filelist(smbwrp_server *srv, cli_state * cli, filelist_state 
 		if (net_share_enum_rpc(cli, smbwrp_share_add, state) < 0 &&
 			    cli_RNetShareEnum(cli,smbwrp_share_add, state) < 0) 
 		{
-			debuglocal(4,"cli_RNetShareEnum failed - %s\n", cli_errstr(cli));
 			return os2cli_errno(cli);
 		}
 	} else 
@@ -1372,7 +1359,6 @@ int _System smbwrp_mkdir(cli_state * cli, char *fname)
 
 	if (!NT_STATUS_IS_OK(cli_mkdir(cli, fname)))
 	{
-		debuglocal(4,"cli_mkdir failed - %s\n", cli_errstr(cli));
 		return os2cli_errno(cli);
 	}
 	return 0;
@@ -1390,7 +1376,6 @@ int _System smbwrp_rmdir(cli_state * cli, char *fname)
 
 	if (!NT_STATUS_IS_OK(cli_rmdir(cli, fname)))
 	{
-		debuglocal(4,"cli_rmdir failed - %s\n", cli_errstr(cli));
 		return os2cli_errno(cli);
 	}
 	return 0;
@@ -1407,7 +1392,6 @@ int _System smbwrp_setea(cli_state * cli, char *fname, char * name, unsigned cha
 	}
 	if (!NT_STATUS_IS_OK(cli_set_ea_path(cli, fname, name, value, size)))
 	{
-		debuglocal(4,"cli_set_ea_path failed - %s\n", cli_errstr(cli));
 		return os2cli_errno(cli);
 	}
 	return 0;
@@ -1424,7 +1408,6 @@ int _System smbwrp_fsetea(cli_state * cli, smbwrp_file *file, char * name, unsig
 	}
 	if (!NT_STATUS_IS_OK(cli_set_ea_fnum(cli, file->fd, name, value, size)))
 	{
-		debuglocal(4,"cli_set_ea_fnum failed - %s\n", cli_errstr(cli));
 		return os2cli_errno(cli);
 	}
 	return 0;
@@ -1463,7 +1446,6 @@ static int unilistea(cli_state * cli, char *fname, void * buffer, unsigned long 
 
 	if (!NT_STATUS_IS_OK(cli_get_ea_list_path(cli, fname, mem_ctx, &num_eas, &ea_list)))
 	{
-		debuglocal(4,"cli_ea_get_file list failed - %s\n", cli_errstr(cli));
 		talloc_destroy(mem_ctx);
 		return os2cli_errno(cli);
 	}
@@ -1542,7 +1524,6 @@ int _System smbwrp_dskattr(cli_state * cli, FSALLOCATE *pfsa)
 
 	if (!NT_STATUS_IS_OK(cli_disk_size(cli, "", &bsize, &total, &avail))) 
 	{
-		debuglocal(4,"Error in cli_disk_size: %s\n",cli_errstr(cli));
 		return os2cli_errno(cli);
 	}
 
