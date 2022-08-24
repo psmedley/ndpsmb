@@ -10,10 +10,10 @@
 # in bldlevel informations
 # adjust also the date please
 #
-VERSION	= 3.8.0
+VERSION	= 3.9.0
 BUILD	= 202208xx
 VENDOR  = netlabs
-SAMBA	= u:/dev/samba-ubuntu-4.13.x
+SAMBA	= u:/dev/samba-4.15.9
 TOOLKIT = u:/os2tk45
 
 # libz is needed by samba client, if it's found in the path leave the below definition blank. otherwise set it

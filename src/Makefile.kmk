@@ -56,7 +56,7 @@ ndpsmb_INCS = ./h ./rc \
 		$(SAMBA)/lib/tdb/include \
 		$(SAMBA)/lib/tevent
 
-ndpsmb_LIBS = $(SAMBA)/smbcl413.lib
+ndpsmb_LIBS = $(SAMBA)/smbcl415.lib
 ndpsmb_LIBPATH = $(SAMBA)/source3/bin $(Z_LIBDIR)
 
 ndpsmb_CLEAN = rc/description.rc $(PATH_STAGE_LIB)/ndpsmb.dll

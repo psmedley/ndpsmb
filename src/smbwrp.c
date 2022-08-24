@@ -56,6 +56,13 @@ NTSTATUS net_share_enum_rpc(struct cli_state *cli,
                               void *state),
                    void *state);
 
+void cli_list_sync_cb(struct tevent_req *subreq);
+
+NTSTATUS cli_cm_force_encryption_creds(struct cli_state *c,
+					      struct cli_credentials *creds,
+					      const char *sharename);
+
+
 /*
  * Wrapper for cli_errno to return not connected error on negative fd
  * Now returns an OS/2 return code instead of lerrno.
@@ -126,11 +133,6 @@ int _System smbwrp_init(void)
 		debuglocal(0,("Can't load %s, defaults are used!\n",get_dyn_CONFIGFILE()));
 	}
 	load_interfaces();
-
-	if (!init_names())
-	{
-		return 1;
-	}
 
 	if (writeLog())
 	{
@@ -264,20 +266,33 @@ int _System smbwrp_connect( Resource* pRes, cli_state ** cli)
 	char* dev_type;
 	int loginerror = 0;
 	NTSTATUS status;
-	int max_protocol = lp__client_max_protocol();
 	int port = 0; //NBT_SMB_PORT;
 	int name_type= 0x20;
 	int flags = 0;
-	int signing_state = SMB_SIGNING_DEFAULT;
-	enum protocol_types protocol = PROTOCOL_NONE;
-	const char *name = NULL;
 	struct cli_credentials *creds = NULL;
 	TALLOC_CTX *ctx = talloc_tos();
+
+	const char *name = NULL;
 
 
 	if (strlen(srv->workgroup)>0) {
 		workgroup = srv->workgroup;
 	}
+
+	creds = cli_session_creds_init(ctx,
+				       srv->username,
+				       workgroup,
+				       NULL, /* realm */
+				       srv->password,
+				       pRes->krb5support, /* use_kerberos */
+				       pRes->krb5support, /* fallback_after_kerberos */
+				       false, /* use_ccache */
+				       false); /* password_is_nt_hash */
+	enum protocol_types protocol = PROTOCOL_NONE;
+	enum smb_signing_setting signing_state =
+		cli_credentials_get_smb_signing(creds);
+	enum smb_encryption_setting encryption_state =
+		cli_credentials_get_smb_encryption(creds);
 
 #if 0 // samba 4.13 doesn't have these flags - does it automatically attempt kerberos?
 	if (pRes->krb5support) {
@@ -309,14 +324,11 @@ int _System smbwrp_connect( Resource* pRes, cli_state ** cli)
 		return 3;
 	}
 
-	if (max_protocol == PROTOCOL_DEFAULT) {
-		max_protocol = PROTOCOL_LATEST;
-	}
 	DEBUG(4,(" session request ok, c->timeout = %d\n",c->timeout));
 
 	status = smbXcli_negprot(c->conn, c->timeout,
 				 lp_client_min_protocol(),
-				 max_protocol);
+				 lp_client_max_protocol());
 
 	if (!NT_STATUS_IS_OK(status)) {
 		debuglocal(4,"protocol negotiation failed: %s\n",
@@ -330,20 +342,10 @@ int _System smbwrp_connect( Resource* pRes, cli_state ** cli)
 		 smb_protocol_types_string(protocol),
 		 smbXcli_conn_remote_name(c->conn)));
 
-	if (smbXcli_conn_protocol(c->conn) >= PROTOCOL_SMB2_02) {
+	if (protocol >= PROTOCOL_SMB2_02) {
 		/* Ensure we ask for some initial credits. */
 		smb2cli_conn_set_max_credits(c->conn, DEFAULT_SMB2_MAX_CREDITS);
 	}
-
-	creds = cli_session_creds_init(ctx,
-				       srv->username,
-				       workgroup,
-				       NULL, /* realm */
-				       srv->password,
-				       pRes->krb5support, /* use_kerberos */
-				       pRes->krb5support, /* fallback_after_kerberos */ /* 2020-09-18 was false */
-				       false, /* use_ccache */
-				       false); /* password_is_nt_hash */
 
 	status = cli_session_setup_creds(c, creds);
 	if (!NT_STATUS_IS_OK(status)) {
@@ -352,7 +354,8 @@ int _System smbwrp_connect( Resource* pRes, cli_state ** cli)
 		/* If a password was not supplied then
 		 * try again with a null username. */
 		if (srv->password[0] || !srv->username[0] ||
-			pRes->krb5support ||
+			encryption_state == SMB_ENCRYPTION_REQUIRED ||
+			smbXcli_conn_signing_mandatory(c->conn) ||
 			cli_credentials_authentication_requested(creds) ||
 			cli_credentials_is_anonymous(creds) ||
 		!NT_STATUS_IS_OK(status = cli_session_setup_anon(c))) {
@@ -366,7 +369,7 @@ int _System smbwrp_connect( Resource* pRes, cli_state ** cli)
 		}
 		debuglocal(4,"Anonymous login successful\n");
 	}
-	TALLOC_FREE(creds);
+
 	if (!NT_STATUS_IS_OK(status)) {
 		debuglocal(4,"cli_init_creds() failed\n");
 		cli_shutdown(c);
@@ -377,26 +380,23 @@ int _System smbwrp_connect( Resource* pRes, cli_state ** cli)
 			return 7;
 	}
 
-	debuglocal(4," session setup ok. Sending tconx <%s> <********>\n", share);
+	debuglocal(4," session setup ok.\n");
 
-#if 0 /* Causes connections to fail with Samba 4.x */
-	// YD ticket:58 we need to check resource type to avoid connecting to printers.
-	// dev type is set to IPC for IPC$, A: for everything else (printers use LPT1:)
-	if (!strcmp( share, "IPC$"))
-	    dev_type = "IPC";
-	else
-	    dev_type = "A:";
-
-	if (!NT_STATUS_IS_OK(cli_tcon_andx(c, share, dev_type,
-			    srv->password, strlen(srv->password)+1))) {
-		cli_shutdown(c);
-		// if loginerror is != 0 means normal login failed, but anonymous login worked
-		if (loginerror !=0)
-			return 6;
-		else
-			return 7;
+	if (encryption_state >= SMB_ENCRYPTION_DESIRED) {
+		status = cli_cm_force_encryption_creds(c,
+						       creds,
+						       share);
+		if (!NT_STATUS_IS_OK(status)) {
+			switch (encryption_state) {
+			case SMB_ENCRYPTION_DESIRED:
+				break;
+			case SMB_ENCRYPTION_REQUIRED:
+			default:
+				cli_shutdown(c);
+				return 6;
+			}
+		}
 	}
-#endif
 
 	/* must be a normal share */
  
@@ -406,17 +406,6 @@ int _System smbwrp_connect( Resource* pRes, cli_state ** cli)
 		debuglocal(4,"tree connect failed: %s\n", nt_errstr(status));
 		cli_shutdown(c);
 		return status;
-	}
-
-	if (pRes->encryptionsupport) {
-	debuglocal(4,"Attempting to force encryption\n");
-		status = cli_cm_force_encryption_creds(c,
-						       creds,
-						       share);
-		if (!NT_STATUS_IS_OK(status)) {
-			cli_shutdown(c);
-			return status;
-		}
 	}
 
 	debuglocal(4," tconx ok.\n");
@@ -883,7 +872,7 @@ int _System smbwrp_fgetattr(cli_state * cli, smbwrp_file *file, smbwrp_fileinfo 
 /***************************************************** 
 add a entry to a directory listing
 *******************************************************/
-static NTSTATUS smbwrp_dir_add(const char* mnt, smbwrp_fileinfo *finfo, const char *mask, void *state)
+static NTSTATUS smbwrp_dir_add(smbwrp_fileinfo *finfo, const char *mask, void *state)
 {
 	if (state && finfo)
 	{
@@ -912,7 +901,7 @@ static void smbwrp_special_add(const char * name, void * state)
 	strncpy(finfo.fname, name, sizeof(finfo.fname) - 1);
 	finfo.attr = aRONLY | aDIR;
 
-	smbwrp_dir_add("", &finfo, NULL, state);
+	smbwrp_dir_add(&finfo, NULL, state);
 }
 
 static void smbwrp_printjob_add(struct print_job_info *job, void * state)
@@ -931,7 +920,7 @@ static void smbwrp_printjob_add(struct print_job_info *job, void * state)
 	finfo.attr = aRONLY;
 	finfo.size = job->size;
 
-	smbwrp_dir_add("", &finfo, NULL, state);
+	smbwrp_dir_add(&finfo, NULL, state);
 }
 
 static void smbwrp_share_add(const char *share, uint32_t type, 
@@ -947,20 +936,19 @@ static void smbwrp_share_add(const char *share, uint32_t type,
 	strncpy(finfo.fname, share, sizeof(finfo.fname) - 1);
 	finfo.attr = aRONLY | aDIR;	
 
-	smbwrp_dir_add("", &finfo, NULL, state);
+	smbwrp_dir_add(&finfo, NULL, state);
 }
 
 /***************************************************************
  Wrapper that allows SMB2 to list a directory.
  Synchronous only. 
- Based on cli_smb2_list
+ Based on cli_smb2_list from source3/libsmb/cli_smb2_fnum.c
 ***************************************************************/
 
 NTSTATUS list_files_smb2(struct cli_state *cli,
 			const char *pathname,
 			uint16_t attribute,
-			NTSTATUS (*fn)(const char *,
-				struct smbwrp_fileinfo *,
+			NTSTATUS (*fn)(struct smbwrp_fileinfo *,
 				const char *,
 				void *),
 			void *state)
@@ -1112,8 +1100,7 @@ NTSTATUS list_files_smb2(struct cli_state *cli,
 				wrpfinfo.easize = -1;
 				strncpy(wrpfinfo.fname, finfo[0].name, sizeof(wrpfinfo.fname) -1);
 
-				status = fn(cli->dfs_mountpoint,
-					&wrpfinfo,
+				status = fn(&wrpfinfo,
 					pathname,
 					state);
 				// Also add the entry to the cache.
@@ -1174,12 +1161,23 @@ NTSTATUS list_files_smb2(struct cli_state *cli,
 }
 
 
+struct cli_list_sync_state {
+	const char *mask;
+	uint32_t attribute;
+	NTSTATUS (*fn)(struct file_info *finfo,
+		       const char *mask,
+		       void *private_data);
+	void *private_data;
+	NTSTATUS status;
+	bool processed_file;
+};
+
 /****************************************************************************
  Do a directory listing, calling fn on each file found.
  Modified from cli_list() in source3/libsmb/clilist.c
 ****************************************************************************/
 static int list_files(struct cli_state *cli, const char *mask, uint16_t attribute,
-		  NTSTATUS (*fn)(const char *, smbwrp_fileinfo *, const char *,
+		  NTSTATUS (*fn)(smbwrp_fileinfo *, const char *,
 			     void *), void *state)
 {
 	TALLOC_CTX *frame = NULL;
@@ -1228,13 +1226,14 @@ static int list_files(struct cli_state *cli, const char *mask, uint16_t attribut
 		goto fail;
 	}
 
-	status = cli_list_recv(req, frame, &finfo, &num_finfo);
+	status = cli_list_recv(req, frame, &finfo);
 	if (!NT_STATUS_IS_OK(status)) {
 		goto fail;
 	}
 
 	dircachectx = dircache_write_begin(state, num_finfo);
 
+	num_finfo = talloc_array_length(finfo);
 	for (i=0; i<num_finfo; i++) {
 		//as samba and this client have different finfo, we need to convert
 		memset(&wrpfinfo, 0, sizeof(wrpfinfo));
@@ -1247,7 +1246,10 @@ static int list_files(struct cli_state *cli, const char *mask, uint16_t attribut
 		wrpfinfo.easize = -1;
 		strncpy(wrpfinfo.fname, finfo[i].name, sizeof(wrpfinfo.fname) -1);
 
-		fn(cli->dfs_mountpoint, &wrpfinfo, mask, state);
+		status = fn(&wrpfinfo, mask, state);
+		if (!NT_STATUS_IS_OK(status)) {
+			goto fail;
+		}
 		// Also add the entry to the cache.
 		dircache_write_entry(dircachectx, &wrpfinfo);
 	}
@@ -1255,7 +1257,7 @@ static int list_files(struct cli_state *cli, const char *mask, uint16_t attribut
 	dircache_write_end(dircachectx);
  fail:
 	TALLOC_FREE(frame);
-	return num_finfo;
+	return status;
 }
 
 /***************************************************** 

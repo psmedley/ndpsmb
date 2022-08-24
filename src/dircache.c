@@ -402,7 +402,7 @@ static int dcRead (DirectoryCache *pdc, const char *path,
             {
                 for (i = 0; i < pdce->cInfos; i++)
                 {
-                    fn ("", &pdce->aInfos[i], path, state);
+                    fn (&pdce->aInfos[i], path, state);
                 }
 
                 rc = CacheOk;
@@ -419,7 +419,7 @@ static int dcRead (DirectoryCache *pdc, const char *path,
                 {
                     for (i = 0; i < pdce->cInfos; i++)
                     {
-                        fn ("", &pdce->aInfos[i], path, state);
+                        fn (&pdce->aInfos[i], path, state);
                     }
 
                     rc = CacheOk;
