@@ -1218,7 +1218,7 @@ static int list_files(struct cli_state *cli, const char *mask, uint16_t attribut
 	info_level = (smb1cli_conn_capabilities(cli->conn) & CAP_NT_SMBS)
 		? SMB_FIND_FILE_BOTH_DIRECTORY_INFO : SMB_FIND_EA_SIZE;
 
-	req = cli_list_send(frame, ev, cli, mask, attribute, info_level);
+	req = cli_list_send(frame, ev, cli, mask, attribute, info_level, false);
 	if (req == NULL) {
 		goto fail;
 	}
