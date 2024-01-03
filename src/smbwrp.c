@@ -962,6 +962,9 @@ static void list_files_sync_cb(struct tevent_req *subreq)
 	smbwrp_fileinfo wrpfinfo;
 	bool ok;
 
+	//Init cache - don't know number of files so init with 128
+	dircachectx = dircache_write_begin(state, 128);
+
 	state->status = cli_list_recv(subreq, talloc_tos(), &finfo);
 	/* No TALLOC_FREE(subreq), we get here more than once */
 
