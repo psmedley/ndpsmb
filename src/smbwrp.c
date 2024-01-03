@@ -939,228 +939,6 @@ static void smbwrp_share_add(const char *share, uint32_t type,
 	smbwrp_dir_add(&finfo, NULL, state);
 }
 
-/***************************************************************
- Wrapper that allows SMB2 to list a directory.
- Synchronous only. 
- Based on cli_smb2_list from source3/libsmb/cli_smb2_fnum.c
-***************************************************************/
-
-NTSTATUS list_files_smb2(struct cli_state *cli,
-			const char *pathname,
-			uint16_t attribute,
-			NTSTATUS (*fn)(struct smbwrp_fileinfo *,
-				const char *,
-				void *),
-			void *state)
-{
-	NTSTATUS status;
-	uint16_t fnum = 0xffff;
-	char *parent_dir = NULL;
-	const char *mask = NULL;
-	struct smb2_hnd *ph = NULL;
-	bool processed_file = false;
-	TALLOC_CTX *frame = talloc_stackframe();
-	TALLOC_CTX *subframe = NULL;
-	bool mask_has_wild;
-	uint32_t max_trans;
-	uint32_t max_avail_len;
-	bool ok;
-
-	void *dircachectx = NULL;
-	smbwrp_fileinfo wrpfinfo;
-
-	//Init cache - don't know number of files so init with 128
-	dircachectx = dircache_write_begin(state, 128);
-
-	if (smbXcli_conn_has_async_calls(cli->conn)) {
-		/*
-		 * Can't use sync call while an async call is in flight
-		 */
-		status = NT_STATUS_INVALID_PARAMETER;
-		goto fail;
-	}
-
-	if (smbXcli_conn_protocol(cli->conn) < PROTOCOL_SMB2_02) {
-		status = NT_STATUS_INVALID_PARAMETER;
-		goto fail;
-	}
-
-	/* Get the directory name. */
-	if (!windows_parent_dirname(frame,
-				pathname,
-				&parent_dir,
-				&mask)) {
-                status = NT_STATUS_NO_MEMORY;
-		goto fail;
-        }
-
-	mask_has_wild = ms_has_wild(mask);
-
-	status = cli_smb2_create_fnum(cli,
-			parent_dir,
-			0,			/* create_flags */
-			SMB2_IMPERSONATION_IMPERSONATION,
-			SEC_DIR_LIST|SEC_DIR_READ_ATTRIBUTE,/* desired_access */
-			FILE_ATTRIBUTE_DIRECTORY, /* file attributes */
-			FILE_SHARE_READ|FILE_SHARE_WRITE, /* share_access */
-			FILE_OPEN,		/* create_disposition */
-			FILE_DIRECTORY_FILE,	/* create_options */
-			NULL,
-			&fnum,
-			NULL,
-			NULL,
-			NULL);
-
-	if (!NT_STATUS_IS_OK(status)) {
-		goto fail;
-	}
-
-	status = map_fnum_to_smb2_handle(cli,
-					fnum,
-					&ph);
-	if (!NT_STATUS_IS_OK(status)) {
-		goto fail;
-	}
-
-	/*
-	 * ideally, use the max transaction size, but don't send a request
-	 * bigger than we have credits available for
-	 */
-	max_trans = smb2cli_conn_max_trans_size(cli->conn);
-	ok = smb2cli_conn_req_possible(cli->conn, &max_avail_len);
-	if (ok) {
-		max_trans = MIN(max_trans, max_avail_len);
-	}
-
-	do {
-		uint8_t *dir_data = NULL;
-		uint32_t dir_data_length = 0;
-		uint32_t next_offset = 0;
-		subframe = talloc_stackframe();
-
-		status = smb2cli_query_directory(cli->conn,
-					cli->timeout,
-					cli->smb2.session,
-					cli->smb2.tcon,
-					SMB2_FIND_ID_BOTH_DIRECTORY_INFO,
-					0,	/* flags */
-					0,	/* file_index */
-					ph->fid_persistent,
-					ph->fid_volatile,
-					mask,
-					max_trans,
-					subframe,
-					&dir_data,
-					&dir_data_length);
-
-		if (!NT_STATUS_IS_OK(status)) {
-			if (NT_STATUS_EQUAL(status, STATUS_NO_MORE_FILES)) {
-				break;
-			}
-			goto fail;
-		}
-
-		do {
-			struct file_info *finfo = talloc_zero(subframe,
-							struct file_info);
-
-			if (finfo == NULL) {
-				status = NT_STATUS_NO_MEMORY;
-				goto fail;
-			}
-
-			status = parse_finfo_id_both_directory_info(dir_data,
-						dir_data_length,
-						finfo,
-						&next_offset);
-
-			if (!NT_STATUS_IS_OK(status)) {
-				goto fail;
-			}
-
-			if (dir_check_ftype(finfo->attr, attribute)) {
-				/*
-				 * Only process if attributes match.
-				 * On SMB1 server does this, so on
-				 * SMB2 we need to emulate in the
-				 * client.
-				 *
-				 * https://bugzilla.samba.org/show_bug.cgi?id=10260
-				 */
-				processed_file = true;
-
-				//as samba and this client have different finfo, we need to convert
-				memset(&wrpfinfo, 0, sizeof(wrpfinfo));
-				wrpfinfo.size = finfo[0].size;
-				wrpfinfo.attr = finfo[0].attr;
-				wrpfinfo.btime = convert_timespec_to_time_t(finfo[0].btime_ts);
-				wrpfinfo.atime = convert_timespec_to_time_t(finfo[0].atime_ts);
-				wrpfinfo.mtime = convert_timespec_to_time_t(finfo[0].mtime_ts);
-				wrpfinfo.ctime = convert_timespec_to_time_t(finfo[0].ctime_ts);
-				wrpfinfo.easize = -1;
-				strncpy(wrpfinfo.fname, finfo[0].name, sizeof(wrpfinfo.fname) -1);
-
-				status = fn(&wrpfinfo,
-					pathname,
-					state);
-				// Also add the entry to the cache.
-				dircache_write_entry(dircachectx, &wrpfinfo);
-
-				if (!NT_STATUS_IS_OK(status)) {
-					/* not sure why this is required on OS/2 */
-					if (status != NT_STATUS_WAIT_1)
-						break;
-				}
-				if (status == NT_STATUS_WAIT_1)
-					status = NT_STATUS_OK;
-			}
-			TALLOC_FREE(finfo);
-
-			/* Move to next entry. */
-			if (next_offset) {
-				dir_data += next_offset;
-				dir_data_length -= next_offset;
-			}
-		} while (next_offset != 0);
-
-		TALLOC_FREE(subframe);
-
-		if (!mask_has_wild) {
-			/*
-			 * MacOSX 10 doesn't set STATUS_NO_MORE_FILES
-			 * when handed a non-wildcard path. Do it
-			 * for the server (with a non-wildcard path
-			 * there should only ever be one file returned.
-			 */
-			status = STATUS_NO_MORE_FILES;
-			break;
-		}
-
-	} while (NT_STATUS_IS_OK(status));
-
-	if (NT_STATUS_EQUAL(status, STATUS_NO_MORE_FILES)) {
-		status = NT_STATUS_OK;
-	}
-
-	if (NT_STATUS_IS_OK(status) && !processed_file) {
-		/*
-		 * In SMB1 findfirst returns NT_STATUS_NO_SUCH_FILE
-		 * if no files match. Emulate this in the client.
-		 */
-		status = NT_STATUS_NO_SUCH_FILE;
-	}
-	dircache_write_end(dircachectx);
-  fail:
-
-	if (fnum != 0xffff) {
-		cli_smb2_close_fnum(cli, fnum);
-	}
-	TALLOC_FREE(subframe);
-	TALLOC_FREE(frame);
-	return status;
-}
-
-
 struct cli_list_sync_state {
 	const char *mask;
 	uint32_t attribute;
@@ -1173,33 +951,97 @@ struct cli_list_sync_state {
 };
 
 /****************************************************************************
+ Modified from cli_list_syc_cb() in source3/libsmb/clilist.c
+****************************************************************************/
+static void list_files_sync_cb(struct tevent_req *subreq)
+{
+	struct cli_list_sync_state *state =
+		tevent_req_callback_data_void(subreq);
+	struct file_info *finfo;
+	void *dircachectx = NULL;
+	smbwrp_fileinfo wrpfinfo;
+	bool ok;
+
+	state->status = cli_list_recv(subreq, talloc_tos(), &finfo);
+	/* No TALLOC_FREE(subreq), we get here more than once */
+
+	if (NT_STATUS_EQUAL(state->status, NT_STATUS_RETRY)) {
+		/*
+		 * The lowlevel SMB call was rearmed, we'll get back
+		 * here when it's done.
+		 */
+		state->status = NT_STATUS_OK;
+		return;
+	}
+
+	if (!NT_STATUS_IS_OK(state->status)) {
+		return;
+	}
+
+	ok = dir_check_ftype(finfo->attr, state->attribute);
+	if (!ok) {
+		/*
+		 * Only process if attributes match.  On SMB1 server
+		 * does this, so on SMB2 we need to emulate in the
+		 * client.
+		 *
+		 * https://bugzilla.samba.org/show_bug.cgi?id=10260
+		 */
+		return;
+	}
+
+	//as samba and this client have different finfo, we need to convert
+	memset(&wrpfinfo, 0, sizeof(wrpfinfo));
+	wrpfinfo.size = finfo[0].size;
+	wrpfinfo.attr = finfo[0].attr;
+	wrpfinfo.btime = convert_timespec_to_time_t(finfo[0].btime_ts);
+	wrpfinfo.atime = convert_timespec_to_time_t(finfo[0].atime_ts);
+	wrpfinfo.mtime = convert_timespec_to_time_t(finfo[0].mtime_ts);
+	wrpfinfo.ctime = convert_timespec_to_time_t(finfo[0].ctime_ts);
+	wrpfinfo.easize = -1;
+	strncpy(wrpfinfo.fname, finfo[0].name, sizeof(wrpfinfo.fname) -1);
+
+	state->status = state->fn(&wrpfinfo, state->mask, state->private_data);
+	// Also add the entry to the cache.
+	dircache_write_entry(dircachectx, &wrpfinfo);
+
+	state->processed_file = true;
+
+	TALLOC_FREE(finfo);
+}
+
+/****************************************************************************
  Do a directory listing, calling fn on each file found.
  Modified from cli_list() in source3/libsmb/clilist.c
 ****************************************************************************/
 static int list_files(struct cli_state *cli, const char *mask, uint16_t attribute,
-		  NTSTATUS (*fn)(smbwrp_fileinfo *, const char *,
-			     void *), void *state)
+		  NTSTATUS (*fn)(smbwrp_fileinfo *, 
+				 const char *mask,
+				 void *private_data),
+		  void *private_data)
 {
 	TALLOC_CTX *frame = NULL;
+	struct cli_list_sync_state state = {
+		.mask = mask,
+		.attribute = attribute,
+		.fn = fn,
+		.private_data = private_data,
+	};
 	struct tevent_context *ev;
 	struct tevent_req *req;
 	NTSTATUS status = NT_STATUS_NO_MEMORY;
-	struct file_info *finfo;
-	size_t i, num_finfo;
 	uint16_t info_level;
+	enum protocol_types proto = smbXcli_conn_protocol(cli->conn);
 	void *dircachectx = NULL;
+//	size_t num_finfo;
 	smbwrp_fileinfo wrpfinfo;
 
-	/* Try to get the listing from cache. */
-	if (dircache_list_files(fn, state, &num_finfo))
-	{
-		/* Got from cache. */
-		return(num_finfo);
-	}
-
-	if (smbXcli_conn_protocol(cli->conn) >= PROTOCOL_SMB2_02) {
-		return list_files_smb2(cli, mask, attribute, fn, state);
-	}
+//	/* Try to get the listing from cache. */
+//	if (dircache_list_files(fn, state, &num_finfo))
+//	{
+//		/* Got from cache. */
+//		return(num_finfo);
+//	}
 
 	frame = talloc_stackframe();
 
@@ -1215,46 +1057,30 @@ static int list_files(struct cli_state *cli, const char *mask, uint16_t attribut
 		goto fail;
 	}
 
-	info_level = (smb1cli_conn_capabilities(cli->conn) & CAP_NT_SMBS)
-		? SMB_FIND_FILE_BOTH_DIRECTORY_INFO : SMB_FIND_EA_SIZE;
-
+	if (proto >= PROTOCOL_SMB2_02) {
+		info_level = SMB2_FIND_ID_BOTH_DIRECTORY_INFO;
+	} else {
+		info_level = (smb1cli_conn_capabilities(cli->conn) & CAP_NT_SMBS)
+			? SMB_FIND_FILE_BOTH_DIRECTORY_INFO : SMB_FIND_INFO_STANDARD;
+	}
 	req = cli_list_send(frame, ev, cli, mask, attribute, info_level, false);
 	if (req == NULL) {
 		goto fail;
 	}
+	tevent_req_set_callback(req, list_files_sync_cb, &state);
+
 	if (!tevent_req_poll_ntstatus(req, ev, &status)) {
 		goto fail;
 	}
 
-	status = cli_list_recv(req, frame, &finfo);
-	if (!NT_STATUS_IS_OK(status)) {
-		goto fail;
+	if (NT_STATUS_EQUAL(status, NT_STATUS_NO_MORE_FILES)) {
+		status = NT_STATUS_OK;
 	}
 
-	dircachectx = dircache_write_begin(state, num_finfo);
-
-	num_finfo = talloc_array_length(finfo);
-	for (i=0; i<num_finfo; i++) {
-		//as samba and this client have different finfo, we need to convert
-		memset(&wrpfinfo, 0, sizeof(wrpfinfo));
-		wrpfinfo.size = finfo[i].size;
-		wrpfinfo.attr = finfo[i].attr;
-		wrpfinfo.btime = convert_timespec_to_time_t(finfo[i].btime_ts);
-		wrpfinfo.atime = convert_timespec_to_time_t(finfo[i].atime_ts);
-		wrpfinfo.mtime = convert_timespec_to_time_t(finfo[i].mtime_ts);
-		wrpfinfo.ctime = convert_timespec_to_time_t(finfo[i].ctime_ts);
-		wrpfinfo.easize = -1;
-		strncpy(wrpfinfo.fname, finfo[i].name, sizeof(wrpfinfo.fname) -1);
-
-		status = fn(&wrpfinfo, mask, state);
-		if (!NT_STATUS_IS_OK(status)) {
-			goto fail;
-		}
-		// Also add the entry to the cache.
-		dircache_write_entry(dircachectx, &wrpfinfo);
+	if (NT_STATUS_IS_OK(status) && !state.processed_file) {
+		status = NT_STATUS_NO_SUCH_FILE;
 	}
 
-	dircache_write_end(dircachectx);
  fail:
 	TALLOC_FREE(frame);
 	return status;
