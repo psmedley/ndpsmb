@@ -1017,7 +1017,7 @@ static void list_files_sync_cb(struct tevent_req *subreq)
 static int list_files(struct cli_state *cli, const char *mask, uint16_t attribute,
 		  NTSTATUS (*fn)(smbwrp_fileinfo *, 
 				 const char *mask,
-				 void *private_data),
+				 void *private_date),
 		  void *private_data)
 {
 	TALLOC_CTX *frame = NULL;
@@ -1033,15 +1033,15 @@ static int list_files(struct cli_state *cli, const char *mask, uint16_t attribut
 	uint16_t info_level;
 	enum protocol_types proto = smbXcli_conn_protocol(cli->conn);
 	void *dircachectx = NULL;
-//	size_t num_finfo;
+	size_t num_finfo;
 	smbwrp_fileinfo wrpfinfo;
 
-//	/* Try to get the listing from cache. */
-//	if (dircache_list_files(fn, state, &num_finfo))
-//	{
-//		/* Got from cache. */
-//		return(num_finfo);
-//	}
+	/* Try to get the listing from cache. */
+	if (dircache_list_files(fn, state.private_data, &num_finfo))
+	{
+		/* Got from cache. */
+		return(num_finfo);
+	}
 
 	frame = talloc_stackframe();
 
