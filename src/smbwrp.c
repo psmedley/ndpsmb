@@ -409,7 +409,7 @@ int _System smbwrp_connect( Resource* pRes, cli_state ** cli)
 	}
 
 	debuglocal(4," tconx ok.\n");
-	
+
 	// save cli_state pointer
 	*cli = c;
 
@@ -963,7 +963,7 @@ static void list_files_sync_cb(struct tevent_req *subreq)
 	bool ok;
 
 	//Init cache - don't know number of files so init with 128
-	dircachectx = dircache_write_begin(state, 128);
+	dircachectx = dircache_write_begin(state->private_data, 128);
 
 	state->status = cli_list_recv(subreq, talloc_tos(), &finfo);
 	/* No TALLOC_FREE(subreq), we get here more than once */
@@ -1017,7 +1017,7 @@ static void list_files_sync_cb(struct tevent_req *subreq)
  Do a directory listing, calling fn on each file found.
  Modified from cli_list() in source3/libsmb/clilist.c
 ****************************************************************************/
-static int list_files(struct cli_state *cli, const char *mask, uint16_t attribute,
+static NTSTATUS list_files(struct cli_state *cli, const char *mask, uint16_t attribute,
 		  NTSTATUS (*fn)(smbwrp_fileinfo *, 
 				 const char *mask,
 				 void *private_date),
@@ -1094,6 +1094,8 @@ open a directory on the server
 *******************************************************/
 int _System smbwrp_filelist(smbwrp_server *srv, cli_state * cli, filelist_state * state)
 {
+	NTSTATUS status;
+
 	if (!srv || !cli || !state || !*state->mask)
 	{
 		return maperror(EINVAL);
@@ -1142,8 +1144,10 @@ int _System smbwrp_filelist(smbwrp_server *srv, cli_state * cli, filelist_state 
 	else 
 #endif
 	{
-		if (list_files(cli, state->mask, aHIDDEN|aSYSTEM|aDIR, 
-			     smbwrp_dir_add, state) < 0) 
+		status = list_files(cli, state->mask, aHIDDEN|aSYSTEM|aDIR, 
+			     smbwrp_dir_add, state);
+		if (!NT_STATUS_IS_OK(status))
+
 		{									      
 			return os2cli_errno(cli);
 		}
