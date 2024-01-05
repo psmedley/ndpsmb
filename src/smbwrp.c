@@ -410,6 +410,8 @@ int _System smbwrp_connect( Resource* pRes, cli_state ** cli)
 
 	debuglocal(4," tconx ok.\n");
 
+	cli_set_timeout(c, 60*1000);
+	
 	// save cli_state pointer
 	*cli = c;
 
