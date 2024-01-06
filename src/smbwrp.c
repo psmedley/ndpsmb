@@ -1011,7 +1011,7 @@ static void list_files_sync_cb(struct tevent_req *subreq)
 	dircache_write_entry(dircachectx, &wrpfinfo);
 
 	state->processed_file = true;
-
+	dircache_write_end(dircachectx);
 	TALLOC_FREE(finfo);
 }
 
@@ -1037,7 +1037,6 @@ static NTSTATUS list_files(struct cli_state *cli, const char *mask, uint16_t att
 	NTSTATUS status = NT_STATUS_NO_MEMORY;
 	uint16_t info_level;
 	enum protocol_types proto = smbXcli_conn_protocol(cli->conn);
-	void *dircachectx = NULL;
 	size_t num_finfo;
 	smbwrp_fileinfo wrpfinfo;
 
@@ -1045,7 +1044,7 @@ static NTSTATUS list_files(struct cli_state *cli, const char *mask, uint16_t att
 	if (dircache_list_files(fn, state.private_data, &num_finfo))
 	{
 		/* Got from cache. */
-		return(num_finfo);
+		return(NT_STATUS_OK);
 	}
 
 	frame = talloc_stackframe();
