@@ -69,12 +69,6 @@ NTSTATUS cli_cm_force_encryption_creds(struct cli_state *c,
  */
 int os2cli_errno(cli_state * cli)
 {
-#if 0 // cli->fd not available in Samba 4.x
-	if (cli->fd == -1)
-	{
-		return maperror( ENOTCONN);
-	}
-#endif
 	return maperror(cli_errno(cli));
 }
 
@@ -139,11 +133,6 @@ int _System smbwrp_init(void)
 		smbwrp_Logging();
 	}
 
-/*
-	if ((p=smbw_getshared("RESOLVE_ORDER"))) {
-		lp_set_name_resolve_order(p);
-	}
-*/
 	return 0;
 
 }
@@ -157,98 +146,6 @@ void smbwrp_initthread(void)
 	BlockSignals(True, SIGPIPE);
 }
 
-#if 0
-/***************************************************** 
-remove redundent stuff from a filename
-*******************************************************/
-void clean_fname(char *name)
-{
-	char *p, *p2;
-	int l;
-	int modified = 1;
-
-	if (!name) return;
-
-	while (modified) {
-		modified = 0;
-
-		if ((p=strstr(name,"/./"))) {
-			modified = 1;
-			while (*p) {
-				p[0] = p[2];
-				p++;
-			}
-		}
-
-		if ((p=strstr(name,"//"))) {
-			modified = 1;
-			while (*p) {
-				p[0] = p[1];
-				p++;
-			}
-		}
-
-		if (strcmp(name,"/../")==0) {
-			modified = 1;
-			name[1] = 0;
-		}
-
-		if ((p=strstr(name,"/../"))) {
-			modified = 1;
-			for (p2=(p>name?p-1:p);p2>name;p2--) {
-				if (p2[0] == '/') break;
-			}
-			while (*p2) {
-				p2[0] = p2[3];
-				p2++;
-			}
-		}
-
-		if (strcmp(name,"/..")==0) {
-			modified = 1;
-			name[1] = 0;
-		}
-
-		l = strlen(name);
-		p = l>=3?(name+l-3):name;
-		if (strcmp(p,"/..")==0) {
-			modified = 1;
-			for (p2=p-1;p2>name;p2--) {
-				if (p2[0] == '/') break;
-			}
-			if (p2==name) {
-				p[0] = '/';
-				p[1] = 0;
-			} else {
-				p2[0] = 0;
-			}
-		}
-
-		l = strlen(name);
-		p = l>=2?(name+l-2):name;
-		if (strcmp(p,"/.")==0) {
-			if (p == name) {
-				p[1] = 0;
-			} else {
-				p[0] = 0;
-			}
-		}
-
-		if (strncmp(p=name,"./",2) == 0) {      
-			modified = 1;
-			do {
-				p[0] = p[2];
-			} while (*p++);
-		}
-
-		l = strlen(p=name);
-		if (l > 1 && p[l-1] == '/') {
-			modified = 1;
-			p[l-1] = 0;
-		}
-	}
-}
-#endif
 
 /***************************************************** 
 return a connection to a server
@@ -297,16 +194,7 @@ int _System smbwrp_connect( Resource* pRes, cli_state ** cli)
 		signing_state = SMB_SIGNING_REQUIRED;
 	}
 
-#if 0 // samba 4.13 doesn't have these flags - does it automatically attempt kerberos?
-	if (pRes->krb5support) {
-		flags |= CLI_FULL_CONNECTION_USE_KERBEROS;
-		debuglocal(1,"Connecting to \\\\%s:%s\\%s using kerberos authentication. Master %s:%d\n", workgroup, server, share, srv->master, srv->ifmastergroup);
-	} else {
 		debuglocal(1,"Connecting to \\\\%s:*********@%s:%s\\%s. Master %s:%d\n", srv->username,  workgroup, server, share, srv->master, srv->ifmastergroup);
-	}
-#else
-		debuglocal(1,"Connecting to \\\\%s:*********@%s:%s\\%s. Master %s:%d\n", srv->username,  workgroup, server, share, srv->master, srv->ifmastergroup);
-#endif
 
 	if (pRes->ntlmv1support) {
 		lp_set_cmdline("client ntlmv2 auth","no");
@@ -581,28 +469,6 @@ int _System smbwrp_setfilesize(cli_state * cli, smbwrp_file * file, long long ne
 	if (!NT_STATUS_IS_OK(cli_ftruncate(cli, file->fd, newsize)))
 	{
 	debuglocal(4,"smbwrp_setnewfilesize - cli_ftruncate errno = %d\n",cli_errno(cli));
-#if 0 /* This is all sorts of bad - if cli_ftruncate fails, it creates a new file in it's place */
-		if (newsize)
-		{
-			rc = os2cli_errno(cli);
-		}
-
-		if (!NT_STATUS_IS_OK(cli_close(cli, file->fd)))
-		{
-			return os2cli_errno(cli);
-		}
-		uint16_t fd = 0;
-		file->fd = -1;
-		file->offset = 0;			
-		file->openmode &= ~(O_CREAT | O_EXCL);
-		file->openmode |= O_TRUNC;
-		debuglocal(4,"smbwrp_setnewfilesize : cli_open(%s) attr %08x mode %02x denymode %02x\n", file->fname, file->openattr, file->openmode, file->denymode);
-		if (!NT_STATUS_IS_OK(cli_open(cli, file->fname, file->openmode, file->denymode, &fd)))
-		{	
-			return os2cli_errno(cli);
-		}
-		file->fd = fd;
-#endif
 	}	
 	return 0;
 }
@@ -656,20 +522,6 @@ int _System smbwrp_unlink(cli_state * cli, const char *fname)
 	{
 		return maperror(EINVAL);
 	}
-#if 0
-	if (strncmp(cli->dev, "LPT", 3) == 0) 
-	{
-		int job = smbw_stat_printjob(cli, fname, NULL, NULL);
-		if (job == -1) 
-		{
-			goto failed;
-		}
-		if (cli_printjob_del(cli, job) != 0) 
-		{
-			goto failed;
-		}
-	} else 
-#endif
 	if (!NT_STATUS_IS_OK(cli_unlink(cli, fname, aSYSTEM | aHIDDEN))) 
 	{
 		return os2cli_errno(cli);
@@ -767,14 +619,6 @@ int _System smbwrp_getattr(smbwrp_server *srv, cli_state * cli, smbwrp_fileinfo 
 		return 0;
 	}
 
-#if 0 // cli->fd not available in Samba 4.x
-	if (cli->fd == -1)
-	{
-	   /* fd == -1 means the connection is broken */
-	   return maperror(ENOTCONN);
-	}
-#endif
-
 	debuglocal(4, "smbwrp_getattr, calling cli_qpathinfo3\n");
 	if (NT_STATUS_IS_OK(cli_qpathinfo3(cli, finfo->fname, &btime, &atime, &mtime, &ctime,
 			   (off_t *)&finfo->size, (uint32_t*) &finfo->attr, &ino)))
@@ -792,14 +636,8 @@ int _System smbwrp_getattr(smbwrp_server *srv, cli_state * cli, smbwrp_fileinfo 
 	 * about the directory.
 	 */
 	if (   *srv->server_name == 0
-#if 0 /* Causes crashes with Samba 4.x */
-	    || (strcmp(cli->dev,"IPC") == 0)
-#endif
 	    || *srv->share_name == 0 
 	    || (stricmp(srv->share_name,"IPC$") == 0)
-#if 0 /* Causes crashes with Samba 4.x */
-	    || (strncmp(cli->dev,"LPT",3) == 0) 
-#endif
 	   ) 
 	{
 	    debuglocal(4,"getattr not a share.\n");
@@ -1123,11 +961,7 @@ int _System smbwrp_filelist(smbwrp_server *srv, cli_state * cli, filelist_state 
 		cli_NetServerEnum(cli, srv->workgroup, SV_TYPE_ALL,
 				   smbwrp_share_add, state);
 	} else 
-#if 0 /* Causes crashes with Samba 4.x */
-	if ((strcmp(cli->dev,"IPC") == 0) || *srv->share_name == 0 || (stricmp(srv->share_name,"IPC$") == 0)) 
-#else
-	if (/*(strcmp(cli->dev,"IPC") == 0) ||*/ *srv->share_name == 0 || (stricmp(srv->share_name,"IPC$") == 0)) 
-#endif
+	if (*srv->share_name == 0 || (stricmp(srv->share_name,"IPC$") == 0)) 
 	{
 		smbwrp_special_add(".", state);
 		smbwrp_special_add("..", state);
@@ -1137,20 +971,7 @@ int _System smbwrp_filelist(smbwrp_server *srv, cli_state * cli, filelist_state 
 		{
 			return os2cli_errno(cli);
 		}
-	} else 
-#if 0 /* Causes crashes with Samba 4.x */
-	if (strncmp(cli->dev,"LPT",3) == 0) 
-	{
-		smbwrp_special_add(".", state);
-		smbwrp_special_add("..", state);
-		if (cli_print_queue_state(cli, smbwrp_printjob_add, state) < 0) 
-		{
-			return os2cli_errno(cli);
-		}
-	} 
-	else 
-#endif
-	{
+	} else {
 		status = list_files(cli, state->mask, aHIDDEN|aSYSTEM|aDIR, 
 			     smbwrp_dir_add, state);
 		if (!NT_STATUS_IS_OK(status))
@@ -1159,7 +980,6 @@ int _System smbwrp_filelist(smbwrp_server *srv, cli_state * cli, filelist_state 
 			return os2cli_errno(cli);
 		}
 	}																		
-
 	return 0;
 }
 

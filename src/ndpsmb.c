@@ -44,13 +44,6 @@ void debugDelete();
 void fsphUnixTimeToDosDate( time_t time, FDATE* fdate, FTIME *ftime)
 {
 	struct tm* gmt = localtime( &time);
-#if 0 // as localtime() already does dst we don't need to add something
-	if (gmt->tm_isdst>0) {
-	debug_printf( "daylight saving in effect %d, timezone %d\n",gmt->tm_isdst, timezone); 
-	time -= 3600;
-	gmt = localtime( &time);
-	}
-#endif
 	fdate->day  = gmt->tm_mday;
 	fdate->month  = gmt->tm_mon+1;
 	fdate->year = gmt->tm_year + 1900 - 1980;
@@ -74,15 +67,6 @@ void fsphDosDateToUnixTime( FDATE fdate, FTIME ftime, ULONG* time)
 
 	*time = mktime( &gmtime);
 	debug_printf( "fsphDosDateToUnixTime time1 %d %s", *time, ctime( (time_t*)time));
-#if 0 // as mktime() already does dst we don't need to add something
-	struct tm* gmt;
-	gmt = localtime( (time_t*) time);
-	if (gmt->tm_isdst>0) {
-	debug_printf( "fsphDosDateToUnixTime daylight saving in effect %d, timezone %d\n",gmt->tm_isdst, timezone); 
-	*time += 3600;
-	}
-	debug_printf( "fsphDosDateToUnixTime time2 %d %s", *time, ctime( (time_t*)time));
-#endif
 }
 	
 // -------------------------------------------------------------
@@ -206,12 +190,7 @@ int APIENTRY NdpPluginLoad (PLUGINHELPERTABLE2L *pPHT)
 	unsigned long action;
 	ph = pPHT;
 	ifL = 0;
-/*
-	if (ph->cb < sizeof (PLUGINHELPERTABLE2))
-	{
-		return ERROR_INVALID_FUNCTION;
-	}
-*/
+
 	if (ph->cb >= sizeof (PLUGINHELPERTABLE2L))
 	{
 		ifL = 1;
@@ -2148,7 +2127,6 @@ int APIENTRY NdpFileSetInfo (HCONNECTION conn, NDFILEHANDLE handle, NDFILEINFOL 
 		// deferred setinfo - on closing the file
 		pConn->file.openattr = attrFile;
 		fsphDosDateToUnixTime(pfi->stat.fdateLastWrite, pfi->stat.ftimeLastWrite, &(pConn->file.mtime));
-//		fsphDosDateToUnixTime(pfi->stat.fdateCreation, pfi->stat.ftimeCreation, &(pConn->file.btime));
 		pConn->file.updatetime = 2;
 		debug_printf("NdpFileSetInfo mtime %d\n", pConn->file.mtime);
 	} while (0);
