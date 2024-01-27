@@ -1026,7 +1026,6 @@ int APIENTRY NdpQueryPathInfo (HCONNECTION conn, void *plist, char *szPath)
 			return ERROR_FILE_NOT_FOUND;
 		}
 
-
 		do {
 			/* First check if there is information in the directory cache. */
 			unsigned long ulAge = 0;

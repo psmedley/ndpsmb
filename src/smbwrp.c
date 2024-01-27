@@ -263,7 +263,6 @@ int _System smbwrp_connect( Resource* pRes, cli_state ** cli)
 	struct nmb_name called, calling;
 	char *p, *server_n = server;
 	struct cli_state * c = NULL;
-	char* dev_type;
 	int loginerror = 0;
 	NTSTATUS status;
 	int port = 0; //NBT_SMB_PORT;
@@ -294,6 +293,10 @@ int _System smbwrp_connect( Resource* pRes, cli_state ** cli)
 	enum smb_encryption_setting encryption_state =
 		cli_credentials_get_smb_encryption(creds);
 
+	if (encryption_state >= SMB_ENCRYPTION_DESIRED) {
+		signing_state = SMB_SIGNING_REQUIRED;
+	}
+
 #if 0 // samba 4.13 doesn't have these flags - does it automatically attempt kerberos?
 	if (pRes->krb5support) {
 		flags |= CLI_FULL_CONNECTION_USE_KERBEROS;
@@ -314,8 +317,11 @@ int _System smbwrp_connect( Resource* pRes, cli_state ** cli)
 	}
 
 	status = cli_connect_nb(
-		server, NULL, port, name_type, NULL,
-		signing_state, flags, &c);
+		server, NULL, port, name_type, 
+		NULL,
+		signing_state,
+		flags,
+		&c);
 
 	if (!NT_STATUS_IS_OK(status)) {
 		debuglocal(4,"Connection to %s failed (Error %s)\n",
@@ -953,7 +959,7 @@ struct cli_list_sync_state {
 };
 
 /****************************************************************************
- Modified from cli_list_syc_cb() in source3/libsmb/clilist.c
+ Modified from cli_list_sync_cb() in source3/libsmb/clilist.c
 ****************************************************************************/
 static void list_files_sync_cb(struct tevent_req *subreq)
 {
