@@ -1026,6 +1026,12 @@ int APIENTRY NdpQueryPathInfo (HCONNECTION conn, void *plist, char *szPath)
 			return ERROR_FILE_NOT_FOUND;
 		}
 
+		// Check if we're looking for A.+,;=[].B and if so,  bal and don't call smbwrp_getattr
+		if (iftestpath(szPath)) {
+			LEAVE();
+			return ERROR_FILE_NOT_FOUND;
+		}
+
 		do {
 			/* First check if there is information in the directory cache. */
 			unsigned long ulAge = 0;
