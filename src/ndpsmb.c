@@ -1008,7 +1008,7 @@ int APIENTRY NdpQueryPathInfo (HCONNECTION conn, void *plist, char *szPath)
 		// Check if we're looking for A.+,;=[].B and if so,  bal and don't call smbwrp_getattr
 		if (iftestpath(szPath)) {
 			LEAVE();
-			return NO_ERROR;
+			return ERROR_FILE_NOT_FOUND;
 		}
 
 		do {
