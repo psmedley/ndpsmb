@@ -26,10 +26,16 @@
 #include "lib/util/tevent_ntstatus.h"
 #include "param.h"
 #include "smb/smbXcli_base.h"
+#include "libcli/smb/smb2_negotiate_context.h"
 #include "trans2.h"
 #include "smbwrp.h"
 #include "util.h"
 #include <math.h>
+
+#if defined __GNUC__ && __GNUC__ >= 14
+#pragma GCC diagnostic warning "-Wincompatible-pointer-types"
+#endif
+
 bool writeLog(); //defined in debug.c
 int getfindinfoL(Connection * pConn, void * plist, smbwrp_fileinfo * finfo, u_long ulAttribute, char * mask); // defined in ndpsmb.c
 struct smb2_hnd {
@@ -62,6 +68,7 @@ NTSTATUS cli_cm_force_encryption_creds(struct cli_state *c,
 					      struct cli_credentials *creds,
 					      const char *sharename);
 
+struct loadparm_context *samba_cmdline_get_lp_ctx(void);
 
 /*
  * Wrapper for cli_errno to return not connected error on negative fd
@@ -167,6 +174,8 @@ int _System smbwrp_connect( Resource* pRes, cli_state ** cli)
 	int flags = 0;
 	struct cli_credentials *creds = NULL;
 	TALLOC_CTX *ctx = talloc_tos();
+	struct smb2_negotiate_contexts *in_contexts = NULL;
+	struct smb2_negotiate_contexts *out_contexts = NULL;
 
 	const char *name = NULL;
 
@@ -197,7 +206,9 @@ int _System smbwrp_connect( Resource* pRes, cli_state ** cli)
 		debuglocal(1,"Connecting to \\\\%s:*********@%s:%s\\%s. Master %s:%d\n", srv->username,  workgroup, server, share, srv->master, srv->ifmastergroup);
 
 	if (pRes->ntlmv1support) {
-		lp_set_cmdline("client ntlmv2 auth","no");
+		struct loadparm_context *lp_ctx;
+		lp_ctx = samba_cmdline_get_lp_ctx();
+		lpcfg_set_cmdline(lp_ctx, "client ntlmv2 auth","no");
 	}
 
 	if (pRes->encryptionsupport) {
@@ -205,7 +216,7 @@ int _System smbwrp_connect( Resource* pRes, cli_state ** cli)
 	}
 
 	status = cli_connect_nb(
-		server, NULL, port, name_type, 
+		NULL, server, NULL, port, name_type, 
 		NULL,
 		signing_state,
 		flags,
@@ -220,9 +231,29 @@ int _System smbwrp_connect( Resource* pRes, cli_state ** cli)
 
 	DEBUG(4,(" session request ok, c->timeout = %d\n",c->timeout));
 
-	status = smbXcli_negprot(c->conn, c->timeout,
+	in_contexts = talloc_zero(ctx, struct smb2_negotiate_contexts);
+	if (in_contexts == NULL) {
+		return NT_STATUS_NO_MEMORY;
+	}
+
+	status = smb2_negotiate_context_add(
+		in_contexts,
+		in_contexts,
+		SMB2_POSIX_EXTENSIONS_AVAILABLE,
+		(const uint8_t *)SMB2_CREATE_TAG_POSIX,
+		strlen(SMB2_CREATE_TAG_POSIX));
+	if (!NT_STATUS_IS_OK(status)) {
+		return status;
+	}
+
+	status = smbXcli_negprot(c->conn,
+				 c->timeout,
 				 lp_client_min_protocol(),
-				 lp_client_max_protocol());
+				 lp_client_max_protocol(),
+				 in_contexts,
+				 ctx,
+				 &out_contexts);
+	TALLOC_FREE(in_contexts);
 
 	if (!NT_STATUS_IS_OK(status)) {
 		debuglocal(4,"protocol negotiation failed: %s\n",
@@ -601,6 +632,7 @@ int _System smbwrp_getattr(smbwrp_server *srv, cli_state * cli, smbwrp_fileinfo 
 	struct timespec atime;
 	struct timespec mtime;
 	struct timespec ctime;
+	mode_t mode = S_IFREG;
 
 	if (!cli || !finfo || !*finfo->fname) 
 	{
@@ -609,7 +641,7 @@ int _System smbwrp_getattr(smbwrp_server *srv, cli_state * cli, smbwrp_fileinfo 
 	debuglocal(4,"getattr %d %d <%s>\n", smb1cli_conn_capabilities(cli->conn) & CAP_NOPATHINFO2, smb1cli_conn_capabilities(cli->conn) & CAP_NT_SMBS, finfo->fname);
 
 	if (NT_STATUS_IS_OK(cli_qpathinfo2(cli, finfo->fname, &btime, &atime, &mtime, &ctime,
-			   (off_t *)&finfo->size, (uint32_t*) &finfo->attr, &ino)))
+			   (off_t *)&finfo->size, (uint32_t*) &finfo->attr, &ino, &mode)))
 	{
 		finfo->attr &= 0x7F;
 		finfo->btime = convert_timespec_to_time_t(btime);
@@ -911,7 +943,7 @@ static NTSTATUS list_files(struct cli_state *cli, const char *mask, uint16_t att
 		info_level = (smb1cli_conn_capabilities(cli->conn) & CAP_NT_SMBS)
 			? SMB_FIND_FILE_BOTH_DIRECTORY_INFO : SMB_FIND_INFO_STANDARD;
 	}
-	req = cli_list_send(frame, ev, cli, mask, attribute, info_level, false);
+	req = cli_list_send(frame, ev, cli, mask, attribute, info_level);
 	if (req == NULL) {
 		goto fail;
 	}

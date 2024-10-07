@@ -14,7 +14,7 @@ RCDATA NDRC_PLUGIN_NAME
 RCDATA NDRC_PLUGIN_DESC
 {
 "Access to SAMBA resources.\n
-Plugin Version 4.19-1 Build 20240126\n
+Plugin Version 4.21-1 Build 20241008\n
 Maintained by netlabs\n
 See help for more Information.\n   
 "
