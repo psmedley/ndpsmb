@@ -32,10 +32,6 @@
 #include "util.h"
 #include <math.h>
 
-#if defined __GNUC__ && __GNUC__ >= 14
-#pragma GCC diagnostic warning "-Wincompatible-pointer-types"
-#endif
-
 bool writeLog(); //defined in debug.c
 int getfindinfoL(Connection * pConn, void * plist, smbwrp_fileinfo * finfo, u_long ulAttribute, char * mask); // defined in ndpsmb.c
 struct smb2_hnd {
@@ -820,7 +816,7 @@ static void smbwrp_share_add(const char *share, uint32_t type,
 struct cli_list_sync_state {
 	const char *mask;
 	uint32_t attribute;
-	NTSTATUS (*fn)(struct file_info *finfo,
+	NTSTATUS (*fn)(struct smbwrp_fileinfo *finfo,
 		       const char *mask,
 		       void *private_data);
 	void *private_data;
