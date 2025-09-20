@@ -11,7 +11,7 @@
 # adjust also the date please
 #
 VERSION	= 3.7.3
-BUILD	= 2022xxxx
+BUILD	= 20250920
 VENDOR  = netlabs
 SAMBA	= u:/dev/samba-ubuntu-4.11.6/samba
 TOOLKIT = u:/os2tk45
