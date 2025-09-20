@@ -480,7 +480,7 @@ int _System smbwrp_read(cli_state * cli, smbwrp_file * file, void *buf, unsigned
 	size_t nread;
 	*result = 0;
 	status = cli_read(cli, file->fd, buf, file->offset, count, &nread);
-	if (!NT_STATUS_IS_OK(status)) {
+	if (!NT_STATUS_IS_OK(status))
 	{
 		debuglocal(4,"cli_read failed - %s\n", cli_errstr(cli));
 		return os2cli_errno(cli);
