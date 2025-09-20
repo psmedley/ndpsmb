@@ -12,6 +12,7 @@
 #
 VERSION	= 3.9.1
 BUILD	= 20250302
+BUILD	= 20250920
 VENDOR  = netlabs
 SAMBA	= u:/dev/samba-os2
 TOOLKIT = u:/os2tk45
