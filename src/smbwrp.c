@@ -841,7 +841,6 @@ int _System smbwrp_fgetattr(cli_state * cli, smbwrp_file *file, smbwrp_fileinfo 
 	struct timespec atime;
 	struct timespec mtime;
 	struct timespec ctime;
-	SMB_INO_T ino = 0;
 	NTSTATUS status;
 
 	if (!cli || !file || !finfo) 
@@ -850,9 +849,10 @@ int _System smbwrp_fgetattr(cli_state * cli, smbwrp_file *file, smbwrp_fileinfo 
 	}
 
 	strncpy(finfo->fname, file->fname, sizeof(finfo->fname) - 1);
+	/* 2022-01-27 SHL Drop ino request to allow SMB_FILE_NETWORK_OPEN_INFORMATION usage */
 	if (!NT_STATUS_IS_OK(cli_qfileinfo_basic(cli, file->fd, 
 			   (uint32_t*) &finfo->attr, (off_t *)&finfo->size, &btime, &atime, &mtime, &ctime,
-			   &ino)))
+			   NULL)))
 	{
 		return os2cli_errno(cli);
 	}
